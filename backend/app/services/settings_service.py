@@ -11,14 +11,14 @@ DEFAULT_SETTINGS = {
     "llmProvider": settings.LLM_PROVIDER,
     "autoTriageEnabled": settings.AUTO_TRIAGE_ENABLED,
     "logLevel": settings.LOG_LEVEL,
-    "pollIntervalMinutes": settings.SERVICENOW_POLL_INTERVAL_MINUTES,
+    "pollIntervalMinutes": settings.JIRA_POLL_INTERVAL_MINUTES,
     "selectedTriageAgentId": None,
-    "serviceNow": {
-        "instanceUrl": str(settings.SERVICENOW_INSTANCE_URL).rstrip("/"),
-        "username": settings.SERVICENOW_USERNAME,
-        "password": settings.SERVICENOW_PASSWORD,
-        "assignmentGroup": settings.SERVICENOW_ASSIGNMENT_GROUP,
-        "pollIntervalMinutes": settings.SERVICENOW_POLL_INTERVAL_MINUTES,
+    "jira": {
+        "baseUrl": str(settings.JIRA_BASE_URL).rstrip("/"),
+        "username": settings.JIRA_USERNAME,
+        "password": settings.JIRA_PASSWORD,
+        "jql": settings.JIRA_JQL,
+        "pollIntervalMinutes": settings.JIRA_POLL_INTERVAL_MINUTES,
     },
     "kindo": {
         "tenantUrl": str(settings.KINDO_API_BASE_URL).rstrip("/"),
@@ -33,13 +33,11 @@ async def get_settings(db: AsyncIOMotorDatabase) -> dict:
     if current:
         merged = {**current}
 
-        # Backfill missing top-level keys from defaults.
         for key, value in DEFAULT_SETTINGS.items():
             if key not in merged:
                 merged[key] = value
 
-        # Backfill nested settings keys from defaults.
-        for nested_key in ("serviceNow", "kindo"):
+        for nested_key in ("jira", "kindo"):
             current_nested = merged.get(nested_key, {})
             merged_nested = {**DEFAULT_SETTINGS[nested_key], **current_nested}
             merged[nested_key] = merged_nested

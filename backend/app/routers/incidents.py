@@ -9,8 +9,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.errors import AppError, NotFoundError
 from app.db.mongo import get_db
 from app.schemas.incidents import IncidentPatchRequest
-from app.services.incident_normalization import normalize_incident_document, status_filter_values
-from app.services.sync_service import run_servicenow_sync
+from app.services.incident_normalization import canonicalize_triage_status, status_filter_values
+from app.services.sync_service import run_jira_sync
 from app.utils.serialization import serialize
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
@@ -23,67 +23,71 @@ def _to_object_id(value: str) -> ObjectId:
 
 
 async def _normalize_and_serialize_incident(db: AsyncIOMotorDatabase, incident: dict) -> dict:
-    normalized, updates = normalize_incident_document(incident)
-    if updates:
-        updates["updatedAtLocal"] = datetime.now(timezone.utc)
-        await db.incidents.update_one({"_id": incident["_id"]}, {"$set": updates})
-        normalized["updatedAtLocal"] = updates["updatedAtLocal"]
-    return serialize(normalized)
+    raw_status = incident.get("triageStatus")
+    canonical = canonicalize_triage_status(raw_status)
+    if canonical != raw_status:
+        await db.incidents.update_one(
+            {"_id": incident["_id"]},
+            {"$set": {"triageStatus": canonical, "updatedAt": datetime.now(timezone.utc)}},
+        )
+        incident["triageStatus"] = canonical
+    return serialize(incident)
 
 
 @router.get("")
 async def list_incidents(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
-    severity: str | None = None,
+    priority: str | None = None,
     triageStatus: str | None = None,
     search: str | None = None,
-    sortBy: str = "severity",
+    sortBy: str = "priority",
     sortOrder: str = "desc",
-    assignmentGroup: str | None = None,
     dateFrom: str | None = None,
     dateTo: str | None = None,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> dict:
     mongo_filter: dict = {}
 
-    if severity:
-        mongo_filter["severity"] = severity
+    if priority:
+        mongo_filter["priority"] = priority
     if triageStatus:
         statuses = status_filter_values(triageStatus)
         if len(statuses) == 1:
             mongo_filter["triageStatus"] = statuses[0]
         else:
             mongo_filter["triageStatus"] = {"$in": statuses}
-    if assignmentGroup:
-        mongo_filter["assignmentGroup"] = assignmentGroup
     if search:
         regex = {"$regex": search, "$options": "i"}
         mongo_filter["$or"] = [
-            {"number": regex},
-            {"shortDescription": regex},
+            {"jiraKey": regex},
+            {"summary": regex},
             {"description": regex},
         ]
 
     if dateFrom or dateTo:
-        opened_at: dict[str, datetime] = {}
+        created_at: dict[str, datetime] = {}
         if dateFrom:
-            opened_at["$gte"] = datetime.combine(datetime.fromisoformat(dateFrom).date(), time.min).astimezone(timezone.utc)
+            created_at["$gte"] = datetime.combine(
+                datetime.fromisoformat(dateFrom).date(), time.min
+            ).astimezone(timezone.utc)
         if dateTo:
-            opened_at["$lte"] = datetime.combine(datetime.fromisoformat(dateTo).date(), time.max).astimezone(timezone.utc)
-        mongo_filter["openedAt"] = opened_at
+            created_at["$lte"] = datetime.combine(
+                datetime.fromisoformat(dateTo).date(), time.max
+            ).astimezone(timezone.utc)
+        mongo_filter["createdAt"] = created_at
 
     total = await db.incidents.count_documents(mongo_filter)
 
     sort_direction = -1 if sortOrder.lower() == "desc" else 1
-    if sortBy == "severity":
-        sort_fields = [("severityRank", sort_direction), ("openedAt", -1)]
-    elif sortBy == "openedAt":
-        sort_fields = [("openedAt", sort_direction)]
+    if sortBy == "priority":
+        sort_fields = [("priorityRank", sort_direction), ("createdAt", -1)]
+    elif sortBy == "createdAt":
+        sort_fields = [("createdAt", sort_direction)]
     elif sortBy == "updatedAt":
         sort_fields = [("updatedAt", sort_direction)]
     else:
-        sort_fields = [("severityRank", -1), ("openedAt", -1)]
+        sort_fields = [("priorityRank", -1), ("createdAt", -1)]
 
     cursor = db.incidents.find(mongo_filter).sort(sort_fields).skip((page - 1) * limit).limit(limit)
     data = []
@@ -134,7 +138,7 @@ async def update_incident(
             }
         }
 
-    update_doc["updatedAtLocal"] = datetime.now(timezone.utc)
+    update_doc["updatedAt"] = datetime.now(timezone.utc)
 
     set_doc = {key: value for key, value in update_doc.items() if key != "$push"}
     update_ops: dict = {"$set": set_doc}
@@ -148,7 +152,7 @@ async def update_incident(
 
 @router.post("/sync")
 async def sync_incidents(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
-    summary = await run_servicenow_sync(db)
+    summary = await run_jira_sync(db)
     return {
         "new": summary["new"],
         "updated": summary["updated"],

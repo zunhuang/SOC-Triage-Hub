@@ -100,7 +100,7 @@ async def run_triage_for_incident(
     client = KindoClient.from_settings(settings)
     payload = {
         "inputs": {
-            "incidentId": incident.get("number"),
+            "jiraKey": incident.get("jiraKey"),
             "re-triage": True,
         }
     }
@@ -120,7 +120,7 @@ async def run_triage_for_incident(
 
         triage_run = {
             "incidentId": incident["_id"],
-            "snowIncidentNumber": incident.get("number"),
+            "jiraKey": incident.get("jiraKey"),
             "kindoAgentId": agent_id,
             "kindoRunId": run_id,
             "status": "running",
@@ -164,9 +164,9 @@ async def run_triage_for_incident(
         await record_activity(
             db,
             action="Triage Failed",
-            message=f"{incident.get('number')} triage failed: {error_message}",
+            message=f"{incident.get('jiraKey')} triage failed: {error_message}",
             actor="kindo-agent",
-            incident_number=incident.get("number"),
+            incident_number=incident.get("jiraKey"),
             level="error",
         )
         return
@@ -205,9 +205,9 @@ async def run_triage_for_incident(
         await record_activity(
             db,
             action="Triage Failed",
-            message=f"{incident.get('number')} triage failed: {error_message}",
+            message=f"{incident.get('jiraKey')} triage failed: {error_message}",
             actor="kindo-agent",
-            incident_number=incident.get("number"),
+            incident_number=incident.get("jiraKey"),
             level="error",
         )
         return
@@ -286,9 +286,9 @@ async def run_triage_for_incident(
     await record_activity(
         db,
         action="Triage Complete",
-        message=f"{incident.get('number')} triage completed",
+        message=f"{incident.get('jiraKey')} triage completed",
         actor="kindo-agent",
-        incident_number=incident.get("number"),
+        incident_number=incident.get("jiraKey"),
     )
 
 

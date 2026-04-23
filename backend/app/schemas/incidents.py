@@ -9,12 +9,11 @@ from pydantic import BaseModel, Field
 class IncidentListQuery(BaseModel):
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1, le=100)
-    severity: str | None = None
+    priority: str | None = None
     triageStatus: str | None = None
     search: str | None = None
-    sortBy: str = "severity"
+    sortBy: str = "priority"
     sortOrder: Literal["asc", "desc"] = "desc"
-    assignmentGroup: str | None = None
     dateFrom: date | None = None
     dateTo: date | None = None
 

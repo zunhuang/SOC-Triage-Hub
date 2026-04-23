@@ -3,7 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.db.mongo import get_db
 from app.services.settings_service import get_settings
-from app.services.sync_service import run_servicenow_sync
+from app.services.sync_service import run_jira_sync
 from app.services.triage_orchestrator import queue_triage
 
 router = APIRouter(prefix="/api/cron", tags=["cron"])
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/cron", tags=["cron"])
 
 @router.post("")
 async def run_cron(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
-    summary = await run_servicenow_sync(db)
+    summary = await run_jira_sync(db)
     settings = await get_settings(db)
 
     triage_accepted = 0

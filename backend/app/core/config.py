@@ -16,11 +16,11 @@ class Settings(BaseSettings):
     MONGODB_URI: str = Field(..., description="MongoDB connection URI")
     MONGODB_DB_NAME: str = Field(..., description="MongoDB database name")
 
-    SERVICENOW_INSTANCE_URL: HttpUrl = Field(...)
-    SERVICENOW_USERNAME: str = Field(...)
-    SERVICENOW_PASSWORD: str = Field(...)
-    SERVICENOW_ASSIGNMENT_GROUP: str = Field(default="IAM Operations")
-    SERVICENOW_POLL_INTERVAL_MINUTES: int = Field(default=5, ge=1, le=60)
+    JIRA_BASE_URL: str = Field(default="")
+    JIRA_USERNAME: str = Field(default="")
+    JIRA_PASSWORD: str = Field(default="")
+    JIRA_JQL: str = Field(default='project = "SOC" AND statusCategory != Done')
+    JIRA_POLL_INTERVAL_MINUTES: int = Field(default=5, ge=1, le=60)
 
     KINDO_API_KEY: str = Field(...)
     KINDO_API_BASE_URL: HttpUrl = Field(default="https://api.kindo.ai/v1")

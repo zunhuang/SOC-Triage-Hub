@@ -14,9 +14,9 @@ from app.core.config import settings
 from app.core.errors import AppError
 from app.core.logger import log_json
 from app.db.mongo import close_mongo, connect_mongo, get_db
-from app.routers import activity, cron, health, incidents, kindo, servicenow, settings as settings_router
+from app.routers import activity, cron, health, incidents, jira, kindo, settings as settings_router
 from app.services.settings_service import get_settings as get_runtime_settings
-from app.services.sync_service import run_servicenow_sync
+from app.services.sync_service import run_jira_sync
 from app.services.triage_orchestrator import queue_triage
 
 scheduler = AsyncIOScheduler()
@@ -31,9 +31,9 @@ async def ensure_core_collections() -> None:
         if collection_name not in existing:
             await db.create_collection(collection_name)
 
-    await db.incidents.create_index([("snowIncidentId", ASCENDING)], unique=True)
+    await db.incidents.create_index([("jiraKey", ASCENDING)], unique=True)
     await db.incidents.create_index([("triageStatus", ASCENDING)])
-    await db.incidents.create_index([("severityRank", ASCENDING), ("openedAt", ASCENDING)])
+    await db.incidents.create_index([("priorityRank", ASCENDING), ("createdAt", ASCENDING)])
     await db.agents.create_index([("kindoAgentId", ASCENDING)], unique=True)
     await db.triage_runs.create_index([("kindoRunId", ASCENDING)], unique=True)
     await db.activity_feed.create_index([("timestamp", ASCENDING)])
@@ -41,7 +41,7 @@ async def ensure_core_collections() -> None:
 
 async def scheduled_sync_job() -> None:
     db = get_db()
-    summary = await run_servicenow_sync(db)
+    summary = await run_jira_sync(db)
     runtime = await get_runtime_settings(db)
 
     if runtime.get("autoTriageEnabled") and summary.get("newIncidentIds"):
@@ -62,8 +62,8 @@ async def lifespan(_: FastAPI):
         scheduler.add_job(
             scheduled_sync_job,
             trigger="interval",
-            minutes=settings.SERVICENOW_POLL_INTERVAL_MINUTES,
-            id="servicenow-sync",
+            minutes=settings.JIRA_POLL_INTERVAL_MINUTES,
+            id="jira-sync",
             replace_existing=True,
         )
         scheduler.start()
@@ -72,7 +72,7 @@ async def lifespan(_: FastAPI):
             "scheduler",
             "start",
             "Internal scheduler started",
-            intervalMinutes=settings.SERVICENOW_POLL_INTERVAL_MINUTES,
+            intervalMinutes=settings.JIRA_POLL_INTERVAL_MINUTES,
         )
 
     yield
@@ -126,7 +126,7 @@ app.include_router(kindo.router)
 app.include_router(settings_router.router)
 app.include_router(cron.router)
 app.include_router(activity.router)
-app.include_router(servicenow.router)
+app.include_router(jira.router)
 
 
 @app.get("/")

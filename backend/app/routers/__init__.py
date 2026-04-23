@@ -1,3 +1,3 @@
-from . import activity, cron, health, incidents, kindo, servicenow, settings
+from . import activity, cron, health, incidents, jira, kindo, settings
 
-__all__ = ["health", "incidents", "kindo", "settings", "cron", "activity", "servicenow"]
+__all__ = ["health", "incidents", "jira", "kindo", "settings", "cron", "activity"]

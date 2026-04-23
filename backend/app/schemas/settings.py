@@ -6,11 +6,11 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class ServiceNowSettingsPayload(BaseModel):
-    instanceUrl: str
+class JiraSettingsPayload(BaseModel):
+    baseUrl: str
     username: str
     password: str
-    assignmentGroup: str
+    jql: str
     pollIntervalMinutes: int = Field(default=5, ge=1, le=60)
 
 
@@ -26,6 +26,6 @@ class AppSettingsPayload(BaseModel):
     logLevel: Literal["debug", "info", "warning", "error"]
     pollIntervalMinutes: int = Field(default=5, ge=1, le=60)
     selectedTriageAgentId: str | None = None
-    serviceNow: ServiceNowSettingsPayload
+    jira: JiraSettingsPayload
     kindo: KindoSettingsPayload
     updatedAt: datetime | None = None
