@@ -1,8 +1,8 @@
-# IAM Triage Hub — Architecture Diagram
+# Detect and Respond — Architecture Diagram
 
 ## What This App Does
 
-**IAM Triage Hub** is an AI-powered incident management platform for Identity & Access Management (IAM) operations teams. It:
+**Detect and Respond** is an AI-powered incident management platform for security operations teams. It:
 
 1. **Pulls IAM incidents** from ServiceNow (e.g., locked accounts, access requests, privilege escalations)
 2. **Sends them to Kindo AI agents** for automated triage (root cause analysis, impact assessment, remediation planning)
@@ -105,7 +105,7 @@
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │  LAYOUT (Deloitte-branded)                                          │   │
 │  │  ┌─────────────────────────────────────────────────────────────┐    │   │
-│  │  │ AppHeader  [Deloitte Logo]  IAM Operations Dashboard  [Logout] │    │   │
+│  │  │ AppHeader  [Deloitte Logo]  Detect and Respond         [Logout] │    │   │
 │  │  ├────────┬────────────────────────────────────────────────────┤    │   │
 │  │  │Sidebar │                 Main Content                       │    │   │
 │  │  │        │                                                    │    │   │

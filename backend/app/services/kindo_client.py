@@ -39,7 +39,7 @@ class KindoClient:
         endpoints = ("/agents/list", "/agents")
         last_error: ExternalServiceError | None = None
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             for endpoint in endpoints:
                 response = await client.get(f"{self.base_url}{endpoint}", headers=self._headers)
                 if response.status_code >= 400:
@@ -114,7 +114,7 @@ class KindoClient:
         )
         last_error: ExternalServiceError | None = None
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             for endpoint, body in candidates:
                 response = await client.post(endpoint, headers=self._headers, json=body)
                 if response.status_code >= 400:
@@ -134,7 +134,7 @@ class KindoClient:
 
     async def get_agent_details(self, agent_id: str) -> dict[str, Any]:
         endpoint = f"{self.base_url}/agents/{agent_id}"
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             response = await client.get(endpoint, headers=self._headers)
         if response.status_code >= 400:
             raise ExternalServiceError(
@@ -156,7 +156,7 @@ class KindoClient:
         )
         last_error: ExternalServiceError | None = None
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             for endpoint in endpoints:
                 response = await client.get(endpoint, headers=self._headers)
                 if response.status_code >= 400:
@@ -176,7 +176,7 @@ class KindoClient:
 
     async def inference(self, messages: list[dict[str, str]], model: str = "gpt-4o-mini") -> str:
         payload = {"model": model, "messages": messages}
-        async with httpx.AsyncClient(timeout=45.0) as client:
+        async with httpx.AsyncClient(timeout=45.0, verify=False) as client:
             response = await client.post(
                 f"{self.inference_url}/chat/completions",
                 headers=self._headers,

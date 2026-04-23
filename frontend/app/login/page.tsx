@@ -47,7 +47,7 @@ export default function LoginPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Sign In</CardTitle>
-          <p className="text-sm text-muted-foreground">Use demo credentials to access the IAM Triage Hub.</p>
+          <p className="text-sm text-muted-foreground">Use demo credentials to access Detect and Respond.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">

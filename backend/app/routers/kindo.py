@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
@@ -66,25 +67,38 @@ def _normalize_agent_type(raw_type: Any, agent_payload: dict[str, Any]) -> str:
     return normalized
 
 
+async def _fetch_detail(client: KindoClient, agent_id: str) -> dict[str, Any]:
+    try:
+        return await client.get_agent_details(agent_id)
+    except Exception:
+        return {}
+
+
 @router.get("/agents")
 async def list_kindo_agents(db: AsyncIOMotorDatabase = Depends(get_db)) -> list[dict]:
     runtime_settings = await get_settings(db)
     client = KindoClient.from_settings(runtime_settings)
     remote_agents = await client.list_agents()
 
+    agent_ids: list[str] = []
+    agent_map: dict[str, dict] = {}
     for agent in remote_agents:
         kindo_agent_id = str(
             _extract_first_value(agent, ("id", "_id", "agentId", "agent_id", "uuid")) or ""
         )
         if not kindo_agent_id:
             continue
-        existing = await db.agents.find_one({"kindoAgentId": kindo_agent_id})
-        detailed_agent = {}
-        try:
-            detailed_agent = await client.get_agent_details(kindo_agent_id)
-        except Exception:
-            detailed_agent = {}
+        name = str(_extract_first_value(agent, ("name", "agent_name", "title")) or "")
+        if "CDA" not in name.upper():
+            continue
+        agent_ids.append(kindo_agent_id)
+        agent_map[kindo_agent_id] = agent
 
+    details = await asyncio.gather(*[_fetch_detail(client, aid) for aid in agent_ids])
+
+    for kindo_agent_id, detailed_agent in zip(agent_ids, details):
+        agent = agent_map[kindo_agent_id]
+        existing = await db.agents.find_one({"kindoAgentId": kindo_agent_id})
         combined = {**agent, **detailed_agent}
         raw_type = _extract_first_value(combined, ("agent_type", "type", "kind", "category", "triggerType"))
         computed_type = _normalize_agent_type(raw_type, combined)

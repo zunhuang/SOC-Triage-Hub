@@ -1,4 +1,4 @@
-# IAM Operations Triage Hub
+# Detect and Respond
 
 Production-oriented scaffold for an IAM incident triage platform with:
 - Frontend: Next.js 16.x (App Router, TypeScript, Tailwind v4 + shadcn-style UI)

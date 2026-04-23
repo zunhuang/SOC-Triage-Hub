@@ -1,6 +1,6 @@
-# IAM Operations Triage Hub - Quick Start User Guide
+# Detect and Respond - Quick Start User Guide
 
-This guide gets you from a clean checkout to a working IAM triage workflow.
+This guide gets you from a clean checkout to a working triage workflow.
 
 ## What You Get
 

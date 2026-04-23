@@ -100,7 +100,19 @@ async def run_triage_for_incident(
     client = KindoClient.from_settings(settings)
     payload = {
         "inputs": {
-            "jiraKey": incident.get("jiraKey"),
+            "jiraKey": incident.get("jiraKey", ""),
+            "jiraId": incident.get("jiraId", ""),
+            "project": incident.get("project", ""),
+            "projectName": incident.get("projectName", ""),
+            "summary": incident.get("summary", ""),
+            "description": incident.get("description", ""),
+            "priority": incident.get("priority", ""),
+            "priorityRank": incident.get("priorityRank", 99),
+            "status": incident.get("status", ""),
+            "assignee": incident.get("assignee", ""),
+            "mxdrModule": incident.get("mxdrModule", ""),
+            "createdAt": str(incident.get("createdAt", "")),
+            "updatedAt": str(incident.get("updatedAt", "")),
             "re-triage": True,
         }
     }
@@ -213,43 +225,17 @@ async def run_triage_for_incident(
         return
 
     output = run_result.get("output") or run_result.get("result") or run_result.get("data") or {}
-    triage_json = _parse_json_payload(
-        output.get("triage")
-        or output.get("analysis")
-        or output.get("summary")
-        or output
-    )
-    remediation_steps = _parse_remediation_steps(
-        output.get("remediation") or output.get("remediationSteps") or output.get("steps") or []
-    )
+    if isinstance(output, (dict, list)):
+        raw_text = json.dumps(output, indent=2, default=str)
+    else:
+        raw_text = str(output)
 
     triage_results = {
-        "summary": triage_json.get("summary", "No summary returned"),
-        "rootCauseAnalysis": triage_json.get("rootCauseAnalysis", triage_json.get("root_cause", "Unknown")),
-        "iamCategory": triage_json.get("iamCategory", triage_json.get("category", "Other")),
-        "iamSubCategory": triage_json.get("iamSubCategory", triage_json.get("subCategory", "General")),
-        "affectedSystems": triage_json.get("affectedSystems", []),
-        "impactAssessment": triage_json.get("impactAssessment", "Impact not provided"),
-        "confidenceScore": int(triage_json.get("confidenceScore", 50)),
+        "agentOutput": raw_text,
         "triageAgent": agent_id,
         "kindoRunId": run_id,
-        "rawAgentOutput": json.dumps(output, default=str),
         "completedAt": datetime.now(timezone.utc),
     }
-
-    normalized_steps = []
-    for idx, step in enumerate(remediation_steps, start=1):
-        normalized_steps.append(
-            {
-                "stepNumber": int(step.get("stepNumber", idx)),
-                "action": step.get("action", "No action provided"),
-                "system": step.get("system", "General"),
-                "commands": step.get("commands"),
-                "automatable": bool(step.get("automatable", False)),
-                "estimatedMinutes": int(step.get("estimatedMinutes", 15)),
-                "status": "Pending",
-            }
-        )
 
     await db.incidents.update_one(
         {"_id": incident["_id"]},
@@ -258,7 +244,6 @@ async def run_triage_for_incident(
                 "triageStatus": "Triage Complete",
                 "triageCompletedAt": datetime.now(timezone.utc),
                 "triageResults": triage_results,
-                "remediationSteps": normalized_steps,
                 "updatedAtLocal": datetime.now(timezone.utc),
             },
             "$push": {

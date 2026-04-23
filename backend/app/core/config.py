@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True)
 
-    APP_NAME: str = "IAM Triage Hub Middleware"
+    APP_NAME: str = "Detect and Respond Middleware"
     APP_VERSION: str = "0.1.0"
     NODE_ENV: str = "development"
     LOG_LEVEL: str = "info"

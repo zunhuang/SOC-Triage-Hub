@@ -20,8 +20,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IAM Triage Hub",
-  description: "AI-assisted IAM incident triage operations console"
+  title: "Detect and Respond",
+  description: "AI-assisted incident triage operations console"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

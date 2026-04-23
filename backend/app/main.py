@@ -1,4 +1,4 @@
-"""IAM Triage Hub FastAPI middleware service."""
+"""Detect and Respond FastAPI middleware service."""
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -86,7 +86,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="FastAPI middleware for IAM Operations Triage Hub",
+    description="FastAPI middleware for Detect and Respond",
     lifespan=lifespan,
 )
 
@@ -132,7 +132,7 @@ app.include_router(jira.router)
 @app.get("/")
 async def root() -> dict[str, str]:
     return {
-        "message": "IAM Triage Hub Middleware",
+        "message": "Detect and Respond Middleware",
         "version": settings.APP_VERSION,
         "docs": "/docs",
     }

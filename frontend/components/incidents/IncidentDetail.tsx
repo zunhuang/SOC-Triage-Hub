@@ -1,35 +1,47 @@
+"use client";
+
+import { useState } from "react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Incident } from "@/types/incident";
 
-function Row({ label, value }: { label: string; value: unknown }) {
+
+const DESC_COLLAPSED_HEIGHT = 120;
+
+function Row({ label, value, collapsible }: { label: string; value: unknown; collapsible?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
   const text =
     value === null || value === undefined
       ? ""
       : typeof value === "string"
         ? value
         : String(value);
-  return (
-    <div className="grid grid-cols-[180px_1fr] gap-3 border-b py-2 text-sm last:border-b-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium break-words">{text || "-"}</span>
-    </div>
-  );
-}
 
-function SnapshotField({ label, value }: { label: string; value: string }) {
+  const content = text || "-";
+  const isLong = collapsible && text.length > 300;
+
   return (
-    <div className="rounded-lg border bg-muted/20 p-3">
-      <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-medium text-foreground/90">{value || "-"}</p>
+    <div className="grid grid-cols-[140px_1fr] gap-3 border-b py-2 text-sm last:border-b-0">
+      <span className="text-muted-foreground">{label}</span>
+      <div className="min-w-0">
+        <div
+          className={`font-medium break-all whitespace-pre-wrap ${isLong && !expanded ? "overflow-hidden" : ""}`}
+          style={isLong && !expanded ? { maxHeight: DESC_COLLAPSED_HEIGHT, maskImage: "linear-gradient(black 60%, transparent)" } : undefined}
+        >
+          {content}
+        </div>
+        {isLong ? (
+          <button type="button" onClick={() => setExpanded(!expanded)} className="mt-1 text-xs text-primary hover:underline">
+            {expanded ? "Show less" : "Show more"}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
 export function IncidentDetail({ incident }: { incident: Incident }) {
-  const triage = incident.triageResults;
-
   return (
     <Card>
       <CardHeader>
@@ -41,7 +53,7 @@ export function IncidentDetail({ incident }: { incident: Incident }) {
       <CardContent className="space-y-5">
         <div>
           <Row label="Summary" value={incident.summary} />
-          <Row label="Description" value={incident.description} />
+          <Row label="Description" value={incident.description} collapsible />
           <Row label="Priority" value={incident.priority} />
           <Row label="Status" value={incident.status} />
           <Row label="Project" value={`${incident.project} — ${incident.projectName}`} />
@@ -51,23 +63,6 @@ export function IncidentDetail({ incident }: { incident: Incident }) {
           <Row label="Updated At" value={format(new Date(incident.updatedAt), "MMM d, yyyy HH:mm:ss")} />
         </div>
 
-        {triage ? (
-          <section className="space-y-3 rounded-lg border bg-card p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Incident vs AI Correlation</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <SnapshotField label="Jira Status" value={incident.status} />
-              <SnapshotField label="AI Category" value={triage.iamCategory} />
-              <SnapshotField label="Jira Priority" value={incident.priority} />
-              <SnapshotField label="AI Subcategory" value={triage.iamSubCategory} />
-              <SnapshotField label="MXDR Module" value={incident.mxdrModule ?? "-"} />
-              <SnapshotField label="AI Confidence" value={`${triage.confidenceScore}%`} />
-            </div>
-            <div className="rounded-lg border bg-muted/20 p-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Impact Narrative</p>
-              <p className="mt-1 text-sm leading-6 text-foreground/90">{triage.impactAssessment}</p>
-            </div>
-          </section>
-        ) : null}
       </CardContent>
     </Card>
   );

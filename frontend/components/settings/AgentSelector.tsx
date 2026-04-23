@@ -12,6 +12,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import apiClient from "@/lib/api-client";
 import { useKindoAgents } from "@/hooks/use-settings";
 import type { Agent } from "@/types/settings";
@@ -25,8 +26,16 @@ export function AgentSelector() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [pendingAgentId, setPendingAgentId] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<string>("");
+  const [search, setSearch] = useState("");
 
-  const allAgents = useMemo(() => data ?? [], [data]);
+  const allAgents = useMemo(() => {
+    const agents = data ?? [];
+    if (!search.trim()) return agents;
+    const q = search.toLowerCase();
+    return agents.filter(
+      (a) => (a.name || a.kindoAgentId).toLowerCase().includes(q) || (a.description || "").toLowerCase().includes(q)
+    );
+  }, [data, search]);
   const totalAgents = allAgents.length;
   const invocableCount = useMemo(
     () => allAgents.filter((agent) => agent.agentType === "workflow" || agent.agentType === "chatbot").length,
@@ -84,10 +93,18 @@ export function AgentSelector() {
         {!isLoading && allAgents.length > 0 && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <p className="text-muted-foreground">
-                Showing <strong>{pageStart + 1}</strong>-<strong>{Math.min(pageStart + pageSize, totalAgents)}</strong> of{" "}
-                <strong>{totalAgents}</strong> agents (<strong>{invocableCount}</strong> invocable)
-              </p>
+              <div className="flex items-center gap-3">
+                <Input
+                  placeholder="Search agents..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                  className="h-9 w-64"
+                />
+                <p className="text-muted-foreground">
+                  Showing <strong>{pageStart + 1}</strong>-<strong>{Math.min(pageStart + pageSize, totalAgents)}</strong> of{" "}
+                  <strong>{totalAgents}</strong> agents (<strong>{invocableCount}</strong> invocable)
+                </p>
+              </div>
               <label className="flex items-center gap-2">
                 <span className="text-muted-foreground">Rows per page</span>
                 <select

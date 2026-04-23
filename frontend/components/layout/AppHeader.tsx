@@ -27,7 +27,7 @@ export function AppHeader() {
             className="h-5 w-auto"
           />
           <span className="text-sm font-medium tracking-[0.08em] text-white/90">
-            IAM Operations Dashboard
+            Detect and Respond
           </span>
         </div>
         {pathname !== "/login" ? (

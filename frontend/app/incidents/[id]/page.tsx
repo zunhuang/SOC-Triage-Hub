@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { IncidentDetail } from "@/components/incidents/IncidentDetail";
 import { TriagePanel } from "@/components/incidents/TriagePanel";
-import { RemediationSteps } from "@/components/incidents/RemediationSteps";
 import apiClient from "@/lib/api-client";
 import { triggerTriage, useIncident } from "@/hooks/use-incidents";
 import { useKindoAgents } from "@/hooks/use-settings";
@@ -91,11 +90,10 @@ export default function IncidentDetailPage() {
         <Button onClick={markResolved}>Mark Resolved</Button>
       </div>
       {launchStatus ? <p className="text-sm text-muted-foreground">{launchStatus}</p> : null}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <IncidentDetail incident={data} />
         <div className="space-y-4">
           <TriagePanel incident={data} />
-          <RemediationSteps steps={data.remediationSteps ?? []} />
         </div>
       </div>
     </div>

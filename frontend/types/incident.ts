@@ -27,16 +27,9 @@ export interface RemediationStep {
 }
 
 export interface TriageResults {
-  summary: string;
-  rootCauseAnalysis: string;
-  iamCategory: string;
-  iamSubCategory: string;
-  affectedSystems: string[];
-  impactAssessment: string;
-  confidenceScore: number;
+  agentOutput: string;
   triageAgent: string;
   kindoRunId: string;
-  rawAgentOutput: string;
   completedAt: string;
 }
 

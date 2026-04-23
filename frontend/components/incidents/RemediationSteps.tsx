@@ -30,7 +30,7 @@ function stripPhasePrefix(action: string): string {
 }
 
 function ownerForStep(step: RemediationStep): string {
-  return step.automatable ? "Automation Bot" : "IAM Operations";
+  return step.automatable ? "Automation Bot" : "Detect and Respond";
 }
 
 function priorityForStep(step: RemediationStep, nextStepNumber: number | null): "Now" | "High" | "Medium" | "Low" {
