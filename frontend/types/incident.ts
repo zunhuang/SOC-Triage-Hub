@@ -7,7 +7,7 @@ export type IncidentStatus =
   | "Resolved"
   | "Closed";
 
-export type Severity = "Critical" | "High" | "Medium" | "Low";
+export type Priority = "Highest" | "High" | "Medium" | "Low" | "Lowest";
 
 export interface ActivityLogEntry {
   timestamp: string;
@@ -42,32 +42,28 @@ export interface TriageResults {
 
 export interface Incident {
   _id: string;
-  snowIncidentId: string;
-  number: string;
-  shortDescription: string;
+  jiraKey: string;
+  jiraId: string;
+  project: string;
+  projectName: string;
+  summary: string;
+  status: string;
+  priority: Priority | string;
+  priorityRank: number;
+  assignee: string | null;
   description: string;
-  severity: Severity;
-  priority: string;
-  state: string;
-  assignmentGroup: string;
-  assignedTo: string;
-  caller: string;
-  category: string;
-  subcategory: string;
-  configurationItem: string;
-  openedAt: string;
-  updatedAt: string;
-  snowRawData: Record<string, unknown>;
-  lastSyncedAt: string;
-  syncHash: string;
+  mxdrModule: string | null;
   triageStatus: IncidentStatus;
   triageStartedAt?: string;
   triageCompletedAt?: string;
   triageResults?: TriageResults;
   remediationSteps?: RemediationStep[];
   activityLog: ActivityLogEntry[];
+  jiraRawData: unknown;
+  syncHash: string;
   createdAt: string;
-  updatedAtLocal: string;
+  updatedAt: string;
+  lastSyncedAt: string;
 }
 
 export interface IncidentListResponse {

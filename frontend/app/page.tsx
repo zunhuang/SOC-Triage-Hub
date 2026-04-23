@@ -15,14 +15,14 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { SeverityCards } from "@/components/dashboard/SeverityCards";
+import { PriorityCards } from "@/components/dashboard/SeverityCards";
+import type { PriorityBucket } from "@/components/dashboard/SeverityCards";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TriageStatusBadge } from "@/components/dashboard/TriageStatusBadge";
 import { useIncidents, syncIncidents } from "@/hooks/use-incidents";
 import { useActivityFeed } from "@/hooks/use-activity";
 import { ApiError } from "@/lib/api-client";
 import { canonicalizeTriageStatus } from "@/lib/triage-status";
-import type { Severity } from "@/types/incident";
 
 const STATUS_ICON_MAP = {
   "For Triage": ClipboardList,
@@ -31,42 +31,24 @@ const STATUS_ICON_MAP = {
   "Remediation Pending": Wrench
 } as const;
 
-const severityVariant: Record<string, "destructive" | "secondary" | "outline" | "default"> = {
-  Critical: "destructive",
+const priorityVariant: Record<string, "destructive" | "secondary" | "outline" | "default"> = {
+  Highest: "destructive",
   High: "secondary",
   Medium: "outline",
-  Low: "default"
+  Low: "default",
+  Lowest: "default"
 };
 
-function severityFromPriority(priority: string | undefined): Severity | undefined {
-  const normalized = (priority ?? "").trim().toLowerCase();
-  if (!normalized) {
-    return undefined;
-  }
-  if (normalized.startsWith("1") || normalized.includes("critical")) {
-    return "Critical";
-  }
-  if (normalized.startsWith("2") || normalized.includes("high")) {
-    return "High";
-  }
-  if (
-    normalized.startsWith("3") ||
-    normalized.includes("moderate") ||
-    normalized.includes("medium")
-  ) {
-    return "Medium";
-  }
-  if (normalized.startsWith("4") || normalized.includes("low")) {
-    return "Low";
-  }
-  if (normalized.startsWith("5") || normalized.includes("planning")) {
-    return "Low";
-  }
-  return undefined;
+function rankToBucket(rank: number): PriorityBucket | null {
+  if (rank === 1 || rank === 2) return "High+";
+  if (rank === 3) return "Medium";
+  if (rank === 4) return "Low";
+  if (rank === 5) return "Lowest";
+  return null;
 }
 
 export default function DashboardPage() {
-  const [severity, setSeverity] = useState<Severity | undefined>();
+  const [selectedBucket, setSelectedBucket] = useState<PriorityBucket | undefined>();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string>("");
 
@@ -74,30 +56,34 @@ export default function DashboardPage() {
     const params = new URLSearchParams({
       page: "1",
       limit: "8",
-      sortBy: "severity",
+      sortBy: "priority",
       sortOrder: "desc"
     });
-    if (severity) {
-      params.set("severity", severity);
+    if (selectedBucket) {
+      if (selectedBucket === "High+") {
+        params.set("priority", "High");
+      } else {
+        params.set("priority", selectedBucket);
+      }
     }
     return params;
-  }, [severity]);
+  }, [selectedBucket]);
 
   const { data, mutate, isLoading } = useIncidents(query);
   const { data: activity } = useActivityFeed();
 
   const counts = useMemo(() => {
-    const base: Record<Severity, number> = {
-      Critical: 0,
-      High: 0,
+    const base: Record<PriorityBucket, number> = {
+      "High+": 0,
       Medium: 0,
-      Low: 0
+      Low: 0,
+      Lowest: 0
     };
 
     (data?.data ?? []).forEach((item) => {
-      const normalizedSeverity = severityFromPriority(item.priority) ?? item.severity;
-      if (normalizedSeverity in base) {
-        base[normalizedSeverity] += 1;
+      const bucket = rankToBucket(item.priorityRank);
+      if (bucket) {
+        base[bucket] += 1;
       }
     });
     return base;
@@ -168,7 +154,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <SeverityCards counts={counts} selected={severity} onSelect={setSeverity} />
+      <PriorityCards counts={counts} selected={selectedBucket} onSelect={setSelectedBucket} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {Object.entries(statusCounts).map(([status, count]) => {
@@ -204,26 +190,26 @@ export default function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Number</TableHead>
-                  <TableHead>Short Description</TableHead>
-                  <TableHead>Severity</TableHead>
+                  <TableHead>Key</TableHead>
+                  <TableHead>Summary</TableHead>
+                  <TableHead>Priority</TableHead>
                   <TableHead>Triage Status</TableHead>
-                  <TableHead>Opened</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(data?.data ?? []).map((incident) => (
                   <TableRow key={incident._id}>
-                    <TableCell className="font-medium">{incident.number}</TableCell>
-                    <TableCell className="max-w-[360px] truncate">{incident.shortDescription}</TableCell>
+                    <TableCell className="font-medium">{incident.jiraKey}</TableCell>
+                    <TableCell className="max-w-[360px] truncate">{incident.summary}</TableCell>
                     <TableCell>
-                      <Badge variant={severityVariant[incident.severity] ?? "outline"}>{incident.severity}</Badge>
+                      <Badge variant={priorityVariant[incident.priority] ?? "outline"}>{incident.priority}</Badge>
                     </TableCell>
                     <TableCell>
                       <TriageStatusBadge status={incident.triageStatus} />
                     </TableCell>
-                    <TableCell>{format(new Date(incident.openedAt), "MMM d, yyyy HH:mm")}</TableCell>
+                    <TableCell>{format(new Date(incident.createdAt), "MMM d, yyyy HH:mm")}</TableCell>
                     <TableCell className="text-right">
                       <Button asChild size="sm" variant="outline">
                         <Link href={`/incidents/${incident._id}`}>Open</Link>

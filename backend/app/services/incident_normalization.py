@@ -139,10 +139,10 @@ def build_triage_results_from_legacy(incident: dict[str, Any]) -> dict[str, Any]
     )
 
     return {
-        "summary": str(agent_notes or risk or incident.get("shortDescription") or "No summary returned"),
+        "summary": str(agent_notes or risk or incident.get("summary") or "No summary returned"),
         "rootCauseAnalysis": str(root_cause or "Unknown"),
-        "iamCategory": str(incident_type or incident.get("category") or "Other"),
-        "iamSubCategory": str(incident.get("subcategory") or "General"),
+        "iamCategory": str(incident_type or "Other"),
+        "iamSubCategory": "General",
         "affectedSystems": impacted,
         "impactAssessment": str(risk or agent_notes or "Impact not provided"),
         "confidenceScore": _coerce_confidence(incident.get("confidenceScore")),
@@ -193,18 +193,18 @@ def normalize_incident_document(incident: dict[str, Any]) -> tuple[dict[str, Any
     normalized = dict(incident)
     updates: dict[str, Any] = {}
 
-    severity = (
+    priority = (
         _severity_from_priority(normalized.get("priority"))
-        or _normalize_severity(normalized.get("severity"))
+        or _normalize_severity(normalized.get("priority"))
         or "Medium"
     )
-    if normalized.get("severity") != severity:
-        updates["severity"] = severity
-        normalized["severity"] = severity
-    expected_rank = SEVERITY_RANK[severity]
-    if normalized.get("severityRank") != expected_rank:
-        updates["severityRank"] = expected_rank
-        normalized["severityRank"] = expected_rank
+    if normalized.get("priority") != priority:
+        updates["priority"] = priority
+        normalized["priority"] = priority
+    expected_rank = SEVERITY_RANK[priority]
+    if normalized.get("priorityRank") != expected_rank:
+        updates["priorityRank"] = expected_rank
+        normalized["priorityRank"] = expected_rank
 
     canonical_status = canonicalize_triage_status(incident.get("triageStatus"))
     if canonical_status != incident.get("triageStatus"):

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,11 +34,12 @@ interface IncidentTableProps {
   onAfterLaunch?: () => Promise<unknown> | unknown;
 }
 
-const severityVariant: Record<string, "destructive" | "secondary" | "outline" | "default"> = {
-  Critical: "destructive",
+const priorityVariant: Record<string, "destructive" | "secondary" | "outline" | "default"> = {
+  Highest: "destructive",
   High: "secondary",
   Medium: "outline",
-  Low: "default"
+  Low: "default",
+  Lowest: "default"
 };
 
 export function IncidentTable({
@@ -51,7 +51,7 @@ export function IncidentTable({
   onAfterLaunch
 }: IncidentTableProps) {
   const { data: agents } = useKindoAgents();
-  const [launchIncident, setLaunchIncident] = useState<{ id: string; number: string } | null>(null);
+  const [launchIncident, setLaunchIncident] = useState<{ id: string; jiraKey: string } | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [launchStatus, setLaunchStatus] = useState<string>("");
   const [isLaunching, setIsLaunching] = useState(false);
@@ -69,7 +69,7 @@ export function IncidentTable({
     setLaunchStatus("");
     try {
       await triggerTriage([launchIncident.id], selectedAgentId);
-      setLaunchStatus(`Triage queued for ${launchIncident.number}. Status will update automatically.`);
+      setLaunchStatus(`Triage queued for ${launchIncident.jiraKey}. Status will update automatically.`);
       await onAfterLaunch?.();
       setLaunchIncident(null);
     } catch {
@@ -79,8 +79,8 @@ export function IncidentTable({
     }
   }
 
-  function openLaunchDialog(incidentId: string, incidentNumber: string) {
-    setLaunchIncident({ id: incidentId, number: incidentNumber });
+  function openLaunchDialog(incidentId: string, jiraKey: string) {
+    setLaunchIncident({ id: incidentId, jiraKey });
     setSelectedAgentId((current) => current || enabledAgents[0]?.kindoAgentId || "");
     setLaunchStatus("");
   }
@@ -93,13 +93,13 @@ export function IncidentTable({
             <TableHead className="w-12">
               <input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="select all incidents" />
             </TableHead>
-            <TableHead>Number</TableHead>
-            <TableHead>Short Description</TableHead>
-            <TableHead>Severity</TableHead>
+            <TableHead>Key</TableHead>
+            <TableHead>Summary</TableHead>
             <TableHead>Priority</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Assignee</TableHead>
+            <TableHead>MXDR Module</TableHead>
             <TableHead>Triage Status</TableHead>
-            <TableHead>Opened</TableHead>
-            <TableHead>Updated</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -111,23 +111,23 @@ export function IncidentTable({
                   type="checkbox"
                   checked={selectedIds.includes(incident._id)}
                   onChange={() => onToggle(incident._id)}
-                  aria-label={`select ${incident.number}`}
+                  aria-label={`select ${incident.jiraKey}`}
                 />
               </TableCell>
-              <TableCell className="font-medium">{incident.number}</TableCell>
-              <TableCell className="max-w-[280px] truncate">{incident.shortDescription}</TableCell>
+              <TableCell className="font-medium">{incident.jiraKey}</TableCell>
+              <TableCell className="max-w-[280px] truncate">{incident.summary}</TableCell>
               <TableCell>
-                <Badge variant={severityVariant[incident.severity] ?? "outline"}>{incident.severity}</Badge>
+                <Badge variant={priorityVariant[incident.priority] ?? "outline"}>{incident.priority}</Badge>
               </TableCell>
-              <TableCell>{incident.priority}</TableCell>
+              <TableCell>{incident.status}</TableCell>
+              <TableCell>{incident.assignee ?? "-"}</TableCell>
+              <TableCell>{incident.mxdrModule ?? "-"}</TableCell>
               <TableCell>
                 <TriageStatusBadge status={incident.triageStatus} />
               </TableCell>
-              <TableCell>{format(new Date(incident.openedAt), "MMM d, yyyy HH:mm")}</TableCell>
-              <TableCell>{format(new Date(incident.updatedAt), "MMM d, yyyy HH:mm")}</TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => openLaunchDialog(incident._id, incident.number)}>
+                  <Button size="sm" onClick={() => openLaunchDialog(incident._id, incident.jiraKey)}>
                     Re-Triage
                   </Button>
                   <Button asChild size="sm" variant="outline">
@@ -145,7 +145,7 @@ export function IncidentTable({
           <DialogHeader>
             <DialogTitle>Run Triage</DialogTitle>
             <DialogDescription>
-              Run triage for {launchIncident?.number}. Pick the enabled Kindo agent to execute this run.
+              Run triage for {launchIncident?.jiraKey}. Pick the enabled Kindo agent to execute this run.
             </DialogDescription>
           </DialogHeader>
 

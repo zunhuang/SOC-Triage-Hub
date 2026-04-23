@@ -91,7 +91,7 @@ export function GeneralConfig() {
               defaultValue={data.pollIntervalMinutes}
             />
             <p className="text-xs text-muted-foreground">
-              Base scheduler interval used unless ServiceNow-specific value overrides it.
+              Base scheduler interval used unless Jira-specific value overrides it.
             </p>
           </div>
 

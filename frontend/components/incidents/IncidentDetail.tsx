@@ -3,26 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Incident } from "@/types/incident";
 
-function normalizeDisplayValue(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (typeof value === "object") {
-    const ref = value as { display_value?: unknown; value?: unknown; link?: unknown };
-    if (typeof ref.display_value === "string" && ref.display_value.trim()) return ref.display_value;
-    if (typeof ref.value === "string" && ref.value.trim()) return ref.value;
-    if (typeof ref.link === "string" && ref.link.trim()) return ref.link;
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
-  }
-  return String(value);
-}
-
 function Row({ label, value }: { label: string; value: unknown }) {
-  const text = normalizeDisplayValue(value);
+  const text =
+    value === null || value === undefined
+      ? ""
+      : typeof value === "string"
+        ? value
+        : String(value);
   return (
     <div className="grid grid-cols-[180px_1fr] gap-3 border-b py-2 text-sm last:border-b-0">
       <span className="text-muted-foreground">{label}</span>
@@ -47,23 +34,20 @@ export function IncidentDetail({ incident }: { incident: Incident }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>{incident.number}</span>
-          <Badge variant="outline">{incident.state}</Badge>
+          <span>{incident.jiraKey} &mdash; {incident.summary}</span>
+          <Badge variant="outline">{incident.status}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
-          <Row label="Short Description" value={incident.shortDescription} />
+          <Row label="Summary" value={incident.summary} />
           <Row label="Description" value={incident.description} />
-          <Row label="Severity" value={incident.severity} />
           <Row label="Priority" value={incident.priority} />
-          <Row label="Assignment Group" value={incident.assignmentGroup} />
-          <Row label="Assigned To" value={incident.assignedTo} />
-          <Row label="Caller" value={incident.caller} />
-          <Row label="Category" value={incident.category} />
-          <Row label="Subcategory" value={incident.subcategory} />
-          <Row label="Configuration Item" value={incident.configurationItem} />
-          <Row label="Opened At" value={format(new Date(incident.openedAt), "MMM d, yyyy HH:mm:ss")} />
+          <Row label="Status" value={incident.status} />
+          <Row label="Project" value={`${incident.project} — ${incident.projectName}`} />
+          <Row label="Assignee" value={incident.assignee} />
+          <Row label="MXDR Module" value={incident.mxdrModule} />
+          <Row label="Created At" value={format(new Date(incident.createdAt), "MMM d, yyyy HH:mm:ss")} />
           <Row label="Updated At" value={format(new Date(incident.updatedAt), "MMM d, yyyy HH:mm:ss")} />
         </div>
 
@@ -71,11 +55,11 @@ export function IncidentDetail({ incident }: { incident: Incident }) {
           <section className="space-y-3 rounded-lg border bg-card p-4">
             <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Incident vs AI Correlation</p>
             <div className="grid gap-3 md:grid-cols-2">
-              <SnapshotField label="ServiceNow State" value={incident.state} />
+              <SnapshotField label="Jira Status" value={incident.status} />
               <SnapshotField label="AI Category" value={triage.iamCategory} />
-              <SnapshotField label="ServiceNow Priority" value={incident.priority} />
+              <SnapshotField label="Jira Priority" value={incident.priority} />
               <SnapshotField label="AI Subcategory" value={triage.iamSubCategory} />
-              <SnapshotField label="ServiceNow Severity" value={incident.severity} />
+              <SnapshotField label="MXDR Module" value={incident.mxdrModule ?? "-"} />
               <SnapshotField label="AI Confidence" value={`${triage.confidenceScore}%`} />
             </div>
             <div className="rounded-lg border bg-muted/20 p-3">

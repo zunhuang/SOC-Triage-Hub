@@ -9,23 +9,10 @@ import { Label } from "@/components/ui/label";
 import apiClient, { ApiError } from "@/lib/api-client";
 import { useAppSettings } from "@/hooks/use-settings";
 
-export function ServiceNowConfig() {
+export function JiraConfig() {
   const { data, mutate } = useAppSettings();
   const [status, setStatus] = useState<string>("");
   const formRef = useRef<HTMLFormElement | null>(null);
-
-  function normalizeServiceNowUrl(raw: string): string {
-    const value = raw.trim();
-    if (!value) return value;
-
-    const withScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(value) ? value : `https://${value}`;
-    try {
-      const parsed = new URL(withScheme);
-      return `${parsed.protocol}//${parsed.host}`;
-    } catch {
-      return value;
-    }
-  }
 
   function buildPayload() {
     if (!data || !formRef.current) return null;
@@ -34,11 +21,11 @@ export function ServiceNowConfig() {
 
     return {
       ...data,
-      serviceNow: {
-        instanceUrl: normalizeServiceNowUrl(String(formData.get("instanceUrl") ?? "")),
+      jira: {
+        baseUrl: String(formData.get("baseUrl") ?? "").trim().replace(/\/+$/, ""),
         username: String(formData.get("username") ?? "").trim(),
-        password: passwordInput || data.serviceNow.password,
-        assignmentGroup: String(formData.get("assignmentGroup") ?? "").trim(),
+        password: passwordInput || data.jira.password,
+        jql: String(formData.get("jql") ?? "").trim(),
         pollIntervalMinutes: Number(formData.get("pollIntervalMinutes") ?? 5)
       }
     };
@@ -53,26 +40,30 @@ export function ServiceNowConfig() {
 
       await apiClient.put("/api/settings", payload);
       await mutate();
-      setStatus("ServiceNow settings saved.");
+      setStatus("Jira settings saved.");
     } catch (error) {
       if (error instanceof ApiError) {
-        setStatus(`Failed to save ServiceNow settings: ${error.message}`);
+        setStatus(`Failed to save Jira settings: ${error.message}`);
         return;
       }
-      setStatus("Failed to save ServiceNow settings.");
+      setStatus("Failed to save Jira settings.");
     }
   }
 
   async function testConnection() {
+    if (!formRef.current) return;
+    const formData = new FormData(formRef.current);
+    const baseUrl = String(formData.get("baseUrl") ?? "").trim().replace(/\/+$/, "");
+    const username = String(formData.get("username") ?? "").trim();
+    const passwordInput = String(formData.get("password") ?? "").trim();
+    const password = passwordInput || data?.jira.password || "";
+
     try {
-      const payload = buildPayload();
-      if (!payload) return;
-
-      // Always persist current form values before testing so Test uses what user just typed.
-      await apiClient.put("/api/settings", payload);
-      await mutate();
-
-      const result = await apiClient.post<{ success: boolean; message: string }>("/api/servicenow/test");
+      const result = await apiClient.post<{ success: boolean; message: string }>("/api/jira/test", {
+        baseUrl,
+        username,
+        password
+      });
       setStatus(result.message);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -84,10 +75,10 @@ export function ServiceNowConfig() {
             ? (error.details as { reason: string }).reason
             : undefined;
 
-        setStatus(`ServiceNow test failed: ${error.message}${reason ? ` (${reason})` : ""}`);
+        setStatus(`Jira test failed: ${error.message}${reason ? ` (${reason})` : ""}`);
         return;
       }
-      setStatus("ServiceNow test failed.");
+      setStatus("Jira test failed.");
     }
   }
 
@@ -97,13 +88,12 @@ export function ServiceNowConfig() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>ServiceNow</CardTitle>
+          <CardTitle>Jira Data Center</CardTitle>
           <CardDescription className="mt-1">
-            Configure how incidents are pulled from your ServiceNow queue.
+            Configure how issues are pulled from your Jira instance.
           </CardDescription>
           <p className="mt-1 text-xs text-muted-foreground">
-            Auth mode used by this integration: <strong>Basic Auth (username + password/token)</strong>.
-            API keys and OAuth client credentials are not yet implemented in this UI.
+            Auth mode: <strong>Basic Auth (username + password/token)</strong>.
           </p>
         </div>
         <Button variant="outline" onClick={testConnection}>Test Connection</Button>
@@ -112,80 +102,71 @@ export function ServiceNowConfig() {
         <p className="mb-3 text-xs text-muted-foreground">Fields marked with <span className="font-semibold">*</span> are required.</p>
         <form ref={formRef} onSubmit={saveConfig} className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1 md:col-span-2">
-            <Label htmlFor="instanceUrl">ServiceNow Instance URL *</Label>
+            <Label htmlFor="baseUrl">Jira Base URL *</Label>
             <Input
-              id="instanceUrl"
-              name="instanceUrl"
-              defaultValue={data.serviceNow.instanceUrl}
-              placeholder="https://instance.service-now.com"
+              id="baseUrl"
+              name="baseUrl"
+              defaultValue={data.jira.baseUrl}
+              placeholder="https://jira.company.com"
               required
             />
             <p className="text-xs text-muted-foreground">
-              Base URL for your ServiceNow tenant. Example: <code>https://company.service-now.com</code>.
+              Base URL for your Jira Data Center instance. Example: <code>https://jira.company.com</code>.
             </p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="username">API Username *</Label>
+            <Label htmlFor="username">Username *</Label>
             <Input
               id="username"
               name="username"
-              defaultValue={data.serviceNow.username}
+              defaultValue={data.jira.username}
               placeholder="api_user"
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Service account username used for Table API authentication.
-            </p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="password">API Password / Token *</Label>
+            <Label htmlFor="password">Password / Token *</Label>
             <Input
               id="password"
               name="password"
               type="password"
-              defaultValue={data.serviceNow.password}
-              placeholder="Enter ServiceNow API password"
+              defaultValue={data.jira.password}
+              placeholder="Enter Jira password or API token"
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Password (or token, if your instance maps one) for the API username above.
-            </p>
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="assignmentGroup">Assignment Group *</Label>
+          <div className="space-y-1 md:col-span-2">
+            <Label htmlFor="jql">JQL Filter *</Label>
             <Input
-              id="assignmentGroup"
-              name="assignmentGroup"
-              defaultValue={data.serviceNow.assignmentGroup}
-              placeholder="IAM Operations"
+              id="jql"
+              name="jql"
+              defaultValue={data.jira.jql}
+              placeholder='project = "SOC" AND statusCategory != Done'
               required
             />
             <p className="text-xs text-muted-foreground">
-              Queue/group to sync incidents from. Use display name or group <code>sys_id</code>.
+              JQL query to select which issues are synced. Only issues matching this query will be imported.
             </p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="pollIntervalMinutes">Polling Interval (Minutes) *</Label>
+            <Label htmlFor="pollIntervalMinutes">Poll Interval (Minutes) *</Label>
             <Input
               id="pollIntervalMinutes"
               name="pollIntervalMinutes"
               type="number"
-              defaultValue={data.serviceNow.pollIntervalMinutes}
+              defaultValue={data.jira.pollIntervalMinutes}
               min={1}
               max={60}
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Frequency for scheduled sync checks. Allowed range: 1 to 60 minutes.
-            </p>
           </div>
 
           <div className="md:col-span-2">
-            <Button type="submit">Save ServiceNow Config</Button>
+            <Button type="submit">Save Jira Config</Button>
           </div>
         </form>
         {status ? <p className="mt-3 text-sm text-muted-foreground">{status}</p> : null}

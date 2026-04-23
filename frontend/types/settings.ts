@@ -1,8 +1,8 @@
-export interface ServiceNowSettings {
-  instanceUrl: string;
+export interface JiraSettings {
+  baseUrl: string;
   username: string;
   password: string;
-  assignmentGroup: string;
+  jql: string;
   pollIntervalMinutes: number;
 }
 
@@ -23,7 +23,7 @@ export interface AppSettings {
   logLevel: "debug" | "info" | "warning" | "error";
   pollIntervalMinutes: number;
   selectedTriageAgentId?: string;
-  serviceNow: ServiceNowSettings;
+  jira: JiraSettings;
   kindo: KindoSettings;
   updatedAt: string;
 }

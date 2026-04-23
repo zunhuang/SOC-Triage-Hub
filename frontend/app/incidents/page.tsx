@@ -8,18 +8,18 @@ import { triggerTriage, useIncidents } from "@/hooks/use-incidents";
 
 export default function IncidentsPage() {
   const [page, setPage] = useState(1);
-  const [severity, setSeverity] = useState("");
+  const [priority, setPriority] = useState("");
   const [triageStatus, setTriageStatus] = useState("");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const query = useMemo(() => {
-    const params = new URLSearchParams({ page: String(page), limit: "20", sortBy: "severity", sortOrder: "desc" });
-    if (severity) params.set("severity", severity);
+    const params = new URLSearchParams({ page: String(page), limit: "20", sortBy: "priority", sortOrder: "desc" });
+    if (priority) params.set("priority", priority);
     if (triageStatus) params.set("triageStatus", triageStatus);
     if (search) params.set("search", search);
     return params;
-  }, [page, search, severity, triageStatus]);
+  }, [page, search, priority, triageStatus]);
 
   const { data, isLoading, mutate } = useIncidents(query);
 
@@ -33,17 +33,18 @@ export default function IncidentsPage() {
     <div className="space-y-4">
       <div>
         <h2 className="text-2xl font-semibold">Incidents Workbench</h2>
-        <p className="text-sm text-muted-foreground">Filter, search, and launch triage for IAM incidents.</p>
+        <p className="text-sm text-muted-foreground">Filter, search, and launch triage for incidents.</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <Input placeholder="Search incidents" value={search} onChange={(event) => setSearch(event.target.value)} />
-        <select className="h-9 rounded-md border bg-background px-3" value={severity} onChange={(event) => setSeverity(event.target.value)}>
-          <option value="">All Severities</option>
-          <option value="Critical">Critical</option>
+        <select className="h-9 rounded-md border bg-background px-3" value={priority} onChange={(event) => setPriority(event.target.value)}>
+          <option value="">All Priorities</option>
+          <option value="Highest">Highest</option>
           <option value="High">High</option>
           <option value="Medium">Medium</option>
           <option value="Low">Low</option>
+          <option value="Lowest">Lowest</option>
         </select>
         <select className="h-9 rounded-md border bg-background px-3" value={triageStatus} onChange={(event) => setTriageStatus(event.target.value)}>
           <option value="">All Triage Statuses</option>
