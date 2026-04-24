@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { IncidentDetail } from "@/components/incidents/IncidentDetail";
 import { TriagePanel } from "@/components/incidents/TriagePanel";
 import apiClient from "@/lib/api-client";
-import { triggerTriage, useIncident } from "@/hooks/use-incidents";
+import { deleteIncident, triggerTriage, useIncident } from "@/hooks/use-incidents";
 import { useKindoAgents } from "@/hooks/use-settings";
 import { canonicalizeTriageStatus } from "@/lib/triage-status";
 
@@ -16,6 +16,7 @@ export default function IncidentDetailPage() {
   const { data, isLoading, mutate } = useIncident(incidentId, {
     refreshInterval: (latest) => (canonicalizeTriageStatus(latest?.triageStatus ?? "") === "Triage In Progress" ? 5000 : 0)
   });
+  const router = useRouter();
   const { data: agents } = useKindoAgents();
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [launchStatus, setLaunchStatus] = useState("");
@@ -53,6 +54,13 @@ export default function IncidentDetailPage() {
     await mutate();
   }
 
+  async function handleDelete() {
+    if (!data) return;
+    if (!window.confirm(`Delete incident ${data.jiraKey ?? data._id}? This cannot be undone.`)) return;
+    await deleteIncident(data._id);
+    router.push("/incidents");
+  }
+
   if (isLoading || !data) {
     return <p className="text-sm text-muted-foreground">Loading incident...</p>;
   }
@@ -87,7 +95,10 @@ export default function IncidentDetailPage() {
             {isLaunching ? "Launching..." : "Re-Triage"}
           </Button>
         </div>
-        <Button onClick={markResolved}>Mark Resolved</Button>
+        <div className="flex gap-2">
+          <Button onClick={markResolved}>Mark Resolved</Button>
+          <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+        </div>
       </div>
       {launchStatus ? <p className="text-sm text-muted-foreground">{launchStatus}</p> : null}
       <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">

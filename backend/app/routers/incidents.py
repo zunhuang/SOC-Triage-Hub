@@ -150,6 +150,17 @@ async def update_incident(
     return serialize(updated)
 
 
+@router.delete("/{incident_id}")
+async def delete_incident(incident_id: str, db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
+    object_id = _to_object_id(incident_id)
+    incident = await db.incidents.find_one({"_id": object_id})
+    if incident is None:
+        raise NotFoundError("Incident not found", code="incident_not_found")
+    await db.incidents.delete_one({"_id": object_id})
+    await db.triage_runs.delete_many({"incidentId": object_id})
+    return {"deleted": True, "id": incident_id}
+
+
 @router.post("/sync")
 async def sync_incidents(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     summary = await run_jira_sync(db)

@@ -37,3 +37,7 @@ export async function triggerTriage(incidentIds: string[], agentId?: string) {
     agentId: agentId || undefined
   });
 }
+
+export async function deleteIncident(id: string) {
+  return apiClient.delete<{ deleted: boolean; id: string }>(`/api/incidents/${id}`);
+}
