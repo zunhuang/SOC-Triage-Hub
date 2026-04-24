@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import httpx
 
 from app.core.config import settings
 from app.core.errors import ExternalServiceError
+
+logger = logging.getLogger(__name__)
 
 
 class KindoClient:
@@ -115,17 +118,20 @@ class KindoClient:
         last_error: ExternalServiceError | None = None
 
         async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
-            for endpoint, body in candidates:
+            for idx, (endpoint, body) in enumerate(candidates):
+                logger.info("invoke attempt %d: POST %s body=%s", idx, endpoint, json.dumps(body, default=str)[:500])
                 response = await client.post(endpoint, headers=self._headers, json=body)
                 if response.status_code >= 400:
+                    logger.warning("invoke attempt %d failed: %d %s", idx, response.status_code, response.text[:500])
                     last_error = ExternalServiceError(
                         "Failed to invoke Kindo agent",
                         code="kindo_invoke_failed",
                         details={"status": response.status_code, "body": response.text[:500], "endpoint": endpoint},
                     )
-                    if response.status_code in {400, 404, 405}:
+                    if response.status_code in {400, 404, 405, 422}:
                         continue
                     continue
+                logger.info("invoke attempt %d succeeded: %s", idx, response.text[:500])
                 return response.json()
 
         if last_error is not None:

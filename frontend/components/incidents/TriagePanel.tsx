@@ -1,14 +1,34 @@
 "use client";
 
 import { format } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TriageStatusBadge } from "@/components/dashboard/TriageStatusBadge";
 import { canonicalizeTriageStatus } from "@/lib/triage-status";
 import type { Incident } from "@/types/incident";
 
+function parseAgentOutput(raw: string): string {
+  try {
+    const obj = JSON.parse(raw);
+    if (obj && Array.isArray(obj.parts)) {
+      const textParts = obj.parts
+        .filter((p: { type?: string; text?: string }) => p.type === "text" && p.text?.trim())
+        .map((p: { text: string }) => p.text.trim());
+      if (textParts.length > 0) {
+        return textParts[textParts.length - 1];
+      }
+    }
+  } catch {
+    // not JSON — use as-is
+  }
+  return raw;
+}
+
 export function TriagePanel({ incident }: { incident: Incident }) {
   const normalizedStatus = canonicalizeTriageStatus(incident.triageStatus);
   const triage = incident.triageResults;
+  const displayText = triage?.agentOutput ? parseAgentOutput(triage.agentOutput) : "";
 
   return (
     <Card>
@@ -27,9 +47,11 @@ export function TriagePanel({ incident }: { incident: Incident }) {
 
         {triage ? (
           <>
-            <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/20 p-4 text-sm leading-6">
-              {triage.agentOutput}
-            </pre>
+            <div className="prose prose-sm dark:prose-invert max-h-[70vh] max-w-none overflow-auto rounded-lg border bg-muted/20 p-4">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {displayText}
+              </ReactMarkdown>
+            </div>
 
             <details className="rounded-lg border bg-muted/20 p-4">
               <summary className="cursor-pointer text-sm font-medium">Run Metadata</summary>

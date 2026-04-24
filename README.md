@@ -1,54 +1,84 @@
 # Detect and Respond
 
-Production-oriented scaffold for an IAM incident triage platform with:
-- Frontend: Next.js 16.x (App Router, TypeScript, Tailwind v4 + shadcn-style UI)
-- Middleware: FastAPI (ServiceNow sync + Kindo triage orchestration)
-- Backend datastore: MongoDB
+AI-powered SOC incident triage platform. Pulls incidents from Jira Data Center, sends them to Kindo AI agents for automated triage, and displays results in an operations dashboard.
 
-## Quick Start Guide
+- **Frontend:** Next.js 16 (App Router, TypeScript, Tailwind v4, shadcn/ui)
+- **Backend:** FastAPI (Jira sync + Kindo triage orchestration)
+- **Database:** MongoDB Atlas
 
-For setup, configuration, and first-use workflow, see [QUICKSTART.md](./QUICKSTART.md).
+## Quick Start
 
-## Structure
+For full setup and first-use walkthrough, see [QUICKSTART.md](./QUICKSTART.md).
 
-- `frontend/` Next.js operations console
-- `backend/` FastAPI middleware and integration services
+## Project Structure
 
+```
+frontend/   Next.js operations console (port 3000)
+backend/    FastAPI middleware and integration services (port 8000)
+```
 
 ## Local Setup
 
-1. Copy environment files:
+### 1. Configure environment
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
-2. Install dependencies:
+Edit `backend/.env` and fill in:
+
+- `MONGODB_URI` — MongoDB Atlas connection string
+- `MONGODB_DB_NAME` — database name
+- `KINDO_API_KEY` — your Kindo API key
+- `JIRA_*` — Jira Data Center credentials (or configure in the UI later)
+
+### 2. Install dependencies
+
+**Backend (Python 3.12+):**
 
 ```bash
-cd frontend && npm install
-cd ../backend && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+cd backend
+python -m venv venv
+venv\Scripts\activate        # Windows CMD/PowerShell
+# or: source venv/bin/activate  # macOS/Linux
+pip install -r requirements.txt
 ```
 
-3. Run locally:
+**Frontend (Node.js 20+):**
 
 ```bash
-# terminal 1
-cd backend && source .venv/bin/activate && uvicorn app.main:app --reload
-
-# terminal 2
-cd frontend && npm run dev
+cd frontend
+npm install
 ```
 
-4. Optional Docker run:
+### 3. Run locally (two terminals)
+
+**Terminal 1 — Backend:**
 
 ```bash
-docker compose up --build
+cd backend
+venv\Scripts\activate
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+**Terminal 2 — Frontend:**
+
+```bash
+cd frontend
+npm run dev
+```
+
+### 4. Open the app
+
+- UI: http://localhost:3000
+- API docs: http://localhost:8000/docs
+- Health check: http://localhost:8000/health
+
+**Demo login:** `demo@deloitte.com` / `Deloitte123!`
 
 ## Notes
 
-- Kindo endpoint shapes can vary by tenant. This scaffold normalizes common response keys.
-- ServiceNow assignment-group filtering may require a group `sys_id` in some environments.
-- For production: add auth, rate limiting, secret management, and robust retry/backoff queueing.
+- Kindo endpoint shapes vary by tenant. The client tries multiple payload formats automatically.
+- SSL verification is disabled for Kindo and MongoDB to work behind corporate proxies.
+- For production: add real auth, rate limiting, secret management, and robust retry/backoff queueing.

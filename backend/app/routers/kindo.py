@@ -151,6 +151,12 @@ async def trigger_triage(payload: TriageRequest, db: AsyncIOMotorDatabase = Depe
     return {"accepted": accepted}
 
 
+@router.get("/triage-runs")
+async def list_runs(limit: int = 20, db: AsyncIOMotorDatabase = Depends(get_db)) -> list[dict]:
+    cursor = db.triage_runs.find({}).sort("createdAt", -1).limit(min(limit, 100))
+    return [serialize(run) async for run in cursor]
+
+
 @router.get("/runs/{run_id}")
 async def get_run(run_id: str, db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     run = await db.triage_runs.find_one({"kindoRunId": run_id})

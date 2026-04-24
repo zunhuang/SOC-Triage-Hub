@@ -26,6 +26,34 @@ def _parse_json_payload(raw: Any) -> dict[str, Any]:
     return {}
 
 
+def _extract_agent_report(raw: Any) -> str:
+    """Extract human-readable text from a Kindo agent response.
+
+    Kindo returns a parts array with step-starts, tool calls, and text blocks.
+    The final report is typically the longest text part at the end.
+    """
+    obj = raw
+    if isinstance(raw, str):
+        try:
+            obj = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return raw
+
+    if not isinstance(obj, dict) or "parts" not in obj:
+        if isinstance(raw, (dict, list)):
+            return json.dumps(raw, indent=2, default=str)
+        return str(raw)
+
+    parts = obj["parts"]
+    text_parts = [p["text"].strip() for p in parts if p.get("type") == "text" and p.get("text", "").strip()]
+
+    if not text_parts:
+        return json.dumps(obj, indent=2, default=str)
+
+    # The final report is usually the last and longest text block
+    return text_parts[-1]
+
+
 def _parse_remediation_steps(raw: Any) -> list[dict[str, Any]]:
     if isinstance(raw, list):
         return raw
@@ -37,6 +65,41 @@ def _parse_remediation_steps(raw: Any) -> list[dict[str, Any]]:
         except json.JSONDecodeError:
             return []
     return []
+
+
+_KINDO_INPUT_MAP: dict[str, tuple[str, ...]] = {
+    "jira ticket number": ("jiraKey",),
+    "jira ticket": ("jiraKey",),
+    "ticket number": ("jiraKey",),
+    "ticket": ("jiraKey",),
+    "client": ("projectName", "project"),
+    "module": ("mxdrModule",),
+    "summary": ("summary",),
+    "description": ("description",),
+    "priority": ("priority",),
+    "status": ("status",),
+    "assignee": ("assignee",),
+    "project": ("project", "projectName"),
+}
+
+
+def _build_agent_inputs(incident: dict[str, Any], expected_inputs: list[str]) -> dict[str, str]:
+    """Map incident fields to the agent's expected input names."""
+    result: dict[str, str] = {}
+    for input_name in expected_inputs:
+        key = input_name.strip().lower()
+        source_fields = _KINDO_INPUT_MAP.get(key)
+        if source_fields:
+            for field in source_fields:
+                val = incident.get(field)
+                if val not in (None, ""):
+                    result[input_name] = str(val)
+                    break
+            else:
+                result[input_name] = ""
+        else:
+            result[input_name] = ""
+    return result
 
 
 async def _poll_run(client: KindoClient, agent_id: str, run_id: str) -> dict[str, Any]:
@@ -98,24 +161,32 @@ async def run_triage_for_incident(
     )
 
     client = KindoClient.from_settings(settings)
-    payload = {
-        "inputs": {
-            "jiraKey": incident.get("jiraKey", ""),
-            "jiraId": incident.get("jiraId", ""),
-            "project": incident.get("project", ""),
-            "projectName": incident.get("projectName", ""),
-            "summary": incident.get("summary", ""),
-            "description": incident.get("description", ""),
-            "priority": incident.get("priority", ""),
-            "priorityRank": incident.get("priorityRank", 99),
-            "status": incident.get("status", ""),
-            "assignee": incident.get("assignee", ""),
-            "mxdrModule": incident.get("mxdrModule", ""),
-            "createdAt": str(incident.get("createdAt", "")),
-            "updatedAt": str(incident.get("updatedAt", "")),
-            "re-triage": True,
+
+    agent_doc = await db.agents.find_one({"kindoAgentId": agent_id})
+    expected_inputs = (agent_doc or {}).get("kindoMetadata", {}).get("inputs", [])
+
+    if expected_inputs and isinstance(expected_inputs, list):
+        mapped = _build_agent_inputs(incident, expected_inputs)
+        payload = {"inputs": mapped}
+    else:
+        payload = {
+            "inputs": {
+                "jiraKey": incident.get("jiraKey", ""),
+                "jiraId": incident.get("jiraId", ""),
+                "project": incident.get("project", ""),
+                "projectName": incident.get("projectName", ""),
+                "summary": incident.get("summary", ""),
+                "description": incident.get("description", ""),
+                "priority": incident.get("priority", ""),
+                "priorityRank": incident.get("priorityRank", 99),
+                "status": incident.get("status", ""),
+                "assignee": incident.get("assignee", ""),
+                "mxdrModule": incident.get("mxdrModule", ""),
+                "createdAt": str(incident.get("createdAt", "")),
+                "updatedAt": str(incident.get("updatedAt", "")),
+                "re-triage": True,
+            }
         }
-    }
 
     run_id = None
     try:
@@ -151,6 +222,12 @@ async def run_triage_for_incident(
                 "$set": {
                     "triageStatus": "Triage Failed",
                     "updatedAtLocal": datetime.now(timezone.utc),
+                    "triageResults": {
+                        "agentOutput": f"Triage failed: {error_message}",
+                        "triageAgent": agent_id,
+                        "kindoRunId": run_id or "",
+                        "completedAt": datetime.now(timezone.utc).isoformat(),
+                    },
                 },
                 "$push": {
                     "activityLog": {
@@ -193,6 +270,12 @@ async def run_triage_for_incident(
                 "$set": {
                     "triageStatus": "Triage Failed",
                     "updatedAtLocal": datetime.now(timezone.utc),
+                    "triageResults": {
+                        "agentOutput": f"Triage failed: {error_message}",
+                        "triageAgent": agent_id,
+                        "kindoRunId": run_id or "",
+                        "completedAt": datetime.now(timezone.utc).isoformat(),
+                    },
                 },
                 "$push": {
                     "activityLog": {
@@ -225,10 +308,7 @@ async def run_triage_for_incident(
         return
 
     output = run_result.get("output") or run_result.get("result") or run_result.get("data") or {}
-    if isinstance(output, (dict, list)):
-        raw_text = json.dumps(output, indent=2, default=str)
-    else:
-        raw_text = str(output)
+    raw_text = _extract_agent_report(output)
 
     triage_results = {
         "agentOutput": raw_text,
