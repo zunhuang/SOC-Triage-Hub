@@ -41,3 +41,7 @@ export async function triggerTriage(incidentIds: string[], agentId?: string) {
 export async function deleteIncident(id: string) {
   return apiClient.delete<{ deleted: boolean; id: string }>(`/api/incidents/${id}`);
 }
+
+export async function postTriageToJira(id: string) {
+  return apiClient.post<{ posted: boolean; jiraKey: string }>(`/api/incidents/${id}/post-to-jira`);
+}

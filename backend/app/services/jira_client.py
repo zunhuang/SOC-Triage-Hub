@@ -100,3 +100,27 @@ class JiraClient:
 
         payload = response.json()
         return payload.get("issues", [])
+
+    async def add_comment(self, issue_key: str, body: str) -> dict[str, Any]:
+        try:
+            async with httpx.AsyncClient(timeout=15.0, verify=True) as client:
+                response = await client.post(
+                    f"{self.base_url}/rest/api/2/issue/{issue_key}/comment",
+                    auth=httpx.BasicAuth(self.username, self.password),
+                    json={"body": body},
+                )
+        except httpx.HTTPError as exc:
+            raise ExternalServiceError(
+                "Jira is unreachable",
+                code="jira_unreachable",
+                details={"reason": str(exc)},
+            ) from exc
+
+        if response.status_code >= 400:
+            raise ExternalServiceError(
+                "Failed to post comment to Jira",
+                code="jira_comment_failed",
+                details={"status": response.status_code, "body": response.text[:500]},
+            )
+
+        return response.json()

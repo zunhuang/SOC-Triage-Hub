@@ -9,8 +9,12 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.errors import AppError, NotFoundError
 from app.db.mongo import get_db
 from app.schemas.incidents import IncidentPatchRequest
+from app.services.activity_service import record_activity
 from app.services.incident_normalization import canonicalize_triage_status, status_filter_values
+from app.services.jira_client import JiraClient
+from app.services.settings_service import get_settings
 from app.services.sync_service import run_jira_sync
+from app.utils.markdown_to_jira import md_to_jira
 from app.utils.serialization import serialize
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
@@ -148,6 +152,54 @@ async def update_incident(
     await db.incidents.update_one({"_id": object_id}, update_ops)
     updated = await db.incidents.find_one({"_id": object_id})
     return serialize(updated)
+
+
+@router.post("/{incident_id}/post-to-jira")
+async def post_triage_to_jira(incident_id: str, db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
+    object_id = _to_object_id(incident_id)
+    incident = await db.incidents.find_one({"_id": object_id})
+    if incident is None:
+        raise NotFoundError("Incident not found", code="incident_not_found")
+
+    jira_key = incident.get("jiraKey")
+    if not jira_key:
+        raise AppError(message="Incident has no Jira key", code="missing_jira_key", status_code=400)
+
+    triage = incident.get("triageResults", {})
+    agent_output = triage.get("agentOutput", "")
+    if not agent_output:
+        raise AppError(message="No triage output to post", code="no_triage_output", status_code=400)
+
+    jira_body = md_to_jira(agent_output)
+
+    runtime_settings = await get_settings(db)
+    client = JiraClient.from_settings(runtime_settings)
+    await client.add_comment(jira_key, jira_body)
+
+    await db.incidents.update_one(
+        {"_id": object_id},
+        {
+            "$set": {"triagePostedToJira": True, "triagePostedAt": datetime.now(timezone.utc)},
+            "$push": {
+                "activityLog": {
+                    "timestamp": datetime.now(timezone.utc),
+                    "action": "post_to_jira",
+                    "actor": "user",
+                    "details": f"Triage results posted to {jira_key}",
+                }
+            },
+        },
+    )
+
+    await record_activity(
+        db,
+        action="Posted to Jira",
+        message=f"Triage results posted to {jira_key}",
+        actor="user",
+        incident_number=jira_key,
+    )
+
+    return {"posted": True, "jiraKey": jira_key}
 
 
 @router.delete("/{incident_id}")

@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TriageStatusBadge } from "@/components/dashboard/TriageStatusBadge";
 import { canonicalizeTriageStatus } from "@/lib/triage-status";
+import { postTriageToJira } from "@/hooks/use-incidents";
 import type { Incident } from "@/types/incident";
 
 function parseAgentOutput(raw: string): string {
@@ -29,6 +32,21 @@ export function TriagePanel({ incident }: { incident: Incident }) {
   const normalizedStatus = canonicalizeTriageStatus(incident.triageStatus);
   const triage = incident.triageResults;
   const displayText = triage?.agentOutput ? parseAgentOutput(triage.agentOutput) : "";
+  const [posting, setPosting] = useState(false);
+  const [postStatus, setPostStatus] = useState("");
+
+  async function handlePostToJira() {
+    setPosting(true);
+    setPostStatus("");
+    try {
+      const result = await postTriageToJira(incident._id);
+      setPostStatus(`Posted to ${result.jiraKey}`);
+    } catch {
+      setPostStatus("Failed to post to Jira");
+    } finally {
+      setPosting(false);
+    }
+  }
 
   return (
     <Card>
@@ -51,6 +69,22 @@ export function TriagePanel({ incident }: { incident: Incident }) {
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {displayText}
               </ReactMarkdown>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePostToJira}
+                disabled={posting || !triage.agentOutput || normalizedStatus !== "Triage Complete"}
+              >
+                {posting ? "Posting..." : "Post to Jira"}
+              </Button>
+              {postStatus && (
+                <span className={`text-sm ${postStatus.startsWith("Failed") ? "text-destructive" : "text-muted-foreground"}`}>
+                  {postStatus}
+                </span>
+              )}
             </div>
 
             <details className="rounded-lg border bg-muted/20 p-4">
