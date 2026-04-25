@@ -11,8 +11,10 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.errors import AppError
 from app.services.activity_service import record_activity
+from app.services.jira_client import JiraClient
 from app.services.kindo_client import KindoClient
 from app.services.settings_service import get_settings
+from app.utils.markdown_to_jira import md_to_jira
 
 
 def _parse_json_payload(raw: Any) -> dict[str, Any]:
@@ -82,23 +84,43 @@ _KINDO_INPUT_MAP: dict[str, tuple[str, ...]] = {
     "project": ("project", "projectName"),
 }
 
+_PAYLOAD_INPUT_NAMES = {"alertpayload", "payload", "incident", "alert", "event", "input", "data"}
+
+_INCIDENT_PAYLOAD_FIELDS = (
+    "jiraKey", "jiraId", "project", "projectName", "summary", "description",
+    "status", "priority", "priorityRank", "assignee", "mxdrModule",
+    "createdAt", "updatedAt",
+)
+
+
+def _build_incident_payload(incident: dict[str, Any]) -> str:
+    payload = {}
+    for field in _INCIDENT_PAYLOAD_FIELDS:
+        val = incident.get(field)
+        if val is not None:
+            payload[field] = str(val)
+    return json.dumps(payload, default=str)
+
 
 def _build_agent_inputs(incident: dict[str, Any], expected_inputs: list[str]) -> dict[str, str]:
     """Map incident fields to the agent's expected input names."""
     result: dict[str, str] = {}
     for input_name in expected_inputs:
         key = input_name.strip().lower()
-        source_fields = _KINDO_INPUT_MAP.get(key)
-        if source_fields:
-            for field in source_fields:
-                val = incident.get(field)
-                if val not in (None, ""):
-                    result[input_name] = str(val)
-                    break
+        if key in _PAYLOAD_INPUT_NAMES:
+            result[input_name] = _build_incident_payload(incident)
+        else:
+            source_fields = _KINDO_INPUT_MAP.get(key)
+            if source_fields:
+                for field in source_fields:
+                    val = incident.get(field)
+                    if val not in (None, ""):
+                        result[input_name] = str(val)
+                        break
+                else:
+                    result[input_name] = ""
             else:
                 result[input_name] = ""
-        else:
-            result[input_name] = ""
     return result
 
 
@@ -355,6 +377,46 @@ async def run_triage_for_incident(
         actor="kindo-agent",
         incident_number=incident.get("jiraKey"),
     )
+
+    # Auto-post to Jira if enabled
+    if settings.get("autoPostToJira") and incident.get("jiraKey") and raw_text:
+        try:
+            jira_body = md_to_jira(raw_text)
+            jira_client = JiraClient.from_settings(settings)
+            await jira_client.add_comment(incident["jiraKey"], jira_body)
+            await db.incidents.update_one(
+                {"_id": incident["_id"]},
+                {
+                    "$set": {
+                        "triagePostedToJira": True,
+                        "triagePostedAt": datetime.now(timezone.utc),
+                    },
+                    "$push": {
+                        "activityLog": {
+                            "timestamp": datetime.now(timezone.utc),
+                            "action": "post_to_jira",
+                            "actor": "system",
+                            "details": f"Auto-posted triage results to {incident['jiraKey']}",
+                        }
+                    },
+                },
+            )
+            await record_activity(
+                db,
+                action="Auto-posted to Jira",
+                message=f"Triage results auto-posted to {incident['jiraKey']}",
+                actor="system",
+                incident_number=incident.get("jiraKey"),
+            )
+        except Exception:
+            await record_activity(
+                db,
+                action="Auto-post Failed",
+                message=f"Failed to auto-post triage to {incident.get('jiraKey')}",
+                actor="system",
+                incident_number=incident.get("jiraKey"),
+                level="error",
+            )
 
 
 async def queue_triage(db: AsyncIOMotorDatabase, incident_ids: list[str]) -> int:

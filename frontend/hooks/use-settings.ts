@@ -13,3 +13,15 @@ export function useAppSettings() {
 export function useKindoAgents() {
   return useSWR<Agent[]>("/api/kindo/agents", fetcher);
 }
+
+export interface SchedulerStatus {
+  enabled: boolean;
+  running: boolean;
+  jobScheduled: boolean;
+  nextRunAt: string | null;
+  intervalMinutes: number | null;
+}
+
+export function useSchedulerStatus() {
+  return useSWR<SchedulerStatus>("/api/cron/status", fetcher, { refreshInterval: 15000 });
+}
