@@ -142,7 +142,7 @@ SOC_Triage_Hub/
 │   │   │   └── [id]/page.tsx      # Incident detail (Jira data + AI triage + actions)
 │   │   └── settings/
 │   │       ├── page.tsx           # Settings hub (nav cards)
-│   │       ├── general/page.tsx   # LLM provider, log level, auto-triage toggle
+│   │       ├── general/page.tsx   # LLM provider, log level, automation pipeline toggles + scheduler status
 │   │       ├── agents/page.tsx    # Kindo agent list + config + search
 │   │       └── jira/page.tsx      # Jira Data Center connection config
 │   ├── components/
@@ -170,7 +170,7 @@ SOC_Triage_Hub/
 │   ├── hooks/
 │   │   ├── use-incidents.ts       # useIncidents(), useIncident(), syncIncidents(), triggerTriage(), deleteIncident(), postTriageToJira()
 │   │   ├── use-activity.ts        # useActivityFeed()
-│   │   └── use-settings.ts        # useAppSettings(), useKindoAgents()
+│   │   └── use-settings.ts        # useAppSettings(), useKindoAgents(), useSchedulerStatus()
 │   ├── lib/
 │   │   ├── api-client.ts          # apiClient.get/post/put/patch/delete — wraps fetch()
 │   │   ├── env.ts                 # NEXT_PUBLIC_API_BASE_URL (default: http://localhost:8000)
@@ -206,6 +206,8 @@ SOC_Triage_Hub/
 | PUT | `/api/settings` | routers/settings.py | Save app config |
 | GET | `/api/activity` | routers/activity.py | Recent activity feed (last 50) |
 | POST | `/api/cron` | routers/cron.py | Manual sync + optional auto-triage |
+| GET | `/api/cron/status` | routers/cron.py | Scheduler status + next run time |
+| POST | `/api/cron/apply` | routers/cron.py | Start/stop/reconfigure scheduler dynamically |
 
 ---
 
@@ -286,9 +288,10 @@ Singleton configuration document (`{singleton: true}`). UI settings override `.e
 {
   singleton: true,
   llmProvider: "openai" | "anthropic" | "gemini",
-  autoTriageEnabled: bool,
+  enableScheduler: bool,               # Activate APScheduler cron (sync + triage + post)
+  autoTriageEnabled: bool,              # Auto-triage new incidents after sync
+  autoPostToJira: bool,                 # Auto-post triage results as Jira comments
   logLevel: string,
-  pollIntervalMinutes: int,
   selectedTriageAgentId: string | null,
   jira: { baseUrl, username, password, jql, pollIntervalMinutes },
   kindo: { tenantUrl, inferenceUrl, apiKey },
@@ -317,17 +320,26 @@ Audit trail.
 1. `POST /api/kindo/triage` with `{incidentIds, agentId?}` triggers `queue_triage_with_agent()`
 2. Agent resolution: user-selected → settings `selectedTriageAgentId` → first active triage agent in DB
 3. Incident status set to `"Triage In Progress"`
-4. Agent's expected inputs are read from `kindoMetadata.inputs` (e.g. `["Client", "JIRA Ticket Number", "Module"]`)
-5. Incident fields are mapped to those input names via `_build_agent_inputs()`
+4. Agent's expected inputs are read from `kindoMetadata.inputs` (e.g. `["AlertPayload"]` or `["Client", "JIRA Ticket Number", "Module"]`)
+5. Payload-type inputs (AlertPayload, payload, incident, etc.) receive the full incident JSON; individual field names are mapped via `_KINDO_INPUT_MAP`
 6. `KindoClient.invoke_agent()` sends `{agentId, inputs: [{name, value}, ...]}` to Kindo
 7. Polls `get_run_result()` with exponential backoff (2s→30s, 10min timeout)
 8. On success: extracts final report text from Kindo's parts array via `_extract_agent_report()`
 9. Stores report in `triageResults.agentOutput`, status set to `"Triage Complete"` or `"Triage Failed"`
+10. If `autoPostToJira` is enabled, automatically posts results as a Jira comment
 
 ### Post Triage to Jira
-1. `POST /api/incidents/{id}/post-to-jira` reads `triageResults.agentOutput`
-2. Converts markdown to Jira wiki markup via `md_to_jira()`
-3. Posts as a comment to the Jira issue via `JiraClient.add_comment()`
+1. **Manual:** `POST /api/incidents/{id}/post-to-jira` reads `triageResults.agentOutput`
+2. **Automated:** After triage completes, if `autoPostToJira` setting is enabled
+3. Converts markdown to Jira wiki markup via `md_to_jira()`
+4. Posts as a comment to the Jira issue via `JiraClient.add_comment()`
+
+### Automation Pipeline (Scheduler)
+1. APScheduler runs `scheduled_sync_job()` every N minutes (from `jira.pollIntervalMinutes`)
+2. Enabled via Settings UI toggle (`enableScheduler`) or `ENABLE_INTERNAL_SCHEDULER` env var
+3. Saving settings auto-applies scheduler changes (no restart needed) via `POST /api/cron/apply`
+4. Flow: Sync Jira → auto-triage new incidents (if enabled) → auto-post to Jira (if enabled)
+5. `GET /api/cron/status` returns scheduler state and next run countdown (polled by frontend every 15s)
 
 ### Agent Selection Priority
 1. `agentId` from the triage request (user picked in UI dropdown)

@@ -19,7 +19,9 @@ export interface LlmSettings {
 export interface AppSettings {
   _id?: string;
   llmProvider: "openai" | "anthropic" | "gemini";
+  enableScheduler: boolean;
   autoTriageEnabled: boolean;
+  autoPostToJira: boolean;
   logLevel: "debug" | "info" | "warning" | "error";
   pollIntervalMinutes: number;
   selectedTriageAgentId?: string;

@@ -58,11 +58,16 @@ async def lifespan(_: FastAPI):
     await ensure_core_collections()
     log_json("info", "api", "startup", "MongoDB connected")
 
-    if settings.ENABLE_INTERNAL_SCHEDULER:
+    runtime = await get_runtime_settings(get_db())
+    enable_scheduler = runtime.get("enableScheduler", False) or settings.ENABLE_INTERNAL_SCHEDULER
+    jira_settings = runtime.get("jira", {})
+    poll_minutes = jira_settings.get("pollIntervalMinutes") or settings.JIRA_POLL_INTERVAL_MINUTES
+
+    if enable_scheduler:
         scheduler.add_job(
             scheduled_sync_job,
             trigger="interval",
-            minutes=settings.JIRA_POLL_INTERVAL_MINUTES,
+            minutes=poll_minutes,
             id="jira-sync",
             replace_existing=True,
         )
@@ -72,7 +77,7 @@ async def lifespan(_: FastAPI):
             "scheduler",
             "start",
             "Internal scheduler started",
-            intervalMinutes=settings.JIRA_POLL_INTERVAL_MINUTES,
+            intervalMinutes=poll_minutes,
         )
 
     yield

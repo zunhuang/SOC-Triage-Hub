@@ -4,13 +4,43 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api-client";
-import { useAppSettings } from "@/hooks/use-settings";
+import { useAppSettings, useSchedulerStatus } from "@/hooks/use-settings";
+
+function SchedulerIndicator() {
+  const { data } = useSchedulerStatus();
+  if (!data) return null;
+
+  const nextRun = data.nextRunAt ? new Date(data.nextRunAt) : null;
+  const now = new Date();
+  const secsUntil = nextRun ? Math.max(0, Math.round((nextRun.getTime() - now.getTime()) / 1000)) : null;
+
+  let countdown = "";
+  if (secsUntil !== null) {
+    const mins = Math.floor(secsUntil / 60);
+    const secs = secsUntil % 60;
+    countdown = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+      <span className={`inline-block h-2 w-2 rounded-full ${data.running && data.jobScheduled ? "bg-green-500" : "bg-muted-foreground/40"}`} />
+      {data.running && data.jobScheduled ? (
+        <span>
+          Scheduler active — every {data.intervalMinutes} min
+          {countdown && <span className="text-muted-foreground"> — next run in {countdown}</span>}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">Scheduler inactive</span>
+      )}
+    </div>
+  );
+}
 
 export function GeneralConfig() {
   const { data, mutate } = useAppSettings();
+  const { mutate: refreshScheduler } = useSchedulerStatus();
   const [status, setStatus] = useState("");
 
   if (!data) return null;
@@ -22,13 +52,15 @@ export function GeneralConfig() {
     const payload = {
       ...data,
       llmProvider: String(formData.get("llmProvider")) as "openai" | "anthropic" | "gemini",
+      enableScheduler: formData.get("enableScheduler") === "on",
       autoTriageEnabled: formData.get("autoTriageEnabled") === "on",
-      logLevel: String(formData.get("logLevel")) as "debug" | "info" | "warning" | "error",
-      pollIntervalMinutes: Number(formData.get("pollIntervalMinutes") ?? data.pollIntervalMinutes)
+      autoPostToJira: formData.get("autoPostToJira") === "on",
+      logLevel: String(formData.get("logLevel")) as "debug" | "info" | "warning" | "error"
     };
 
     await apiClient.put("/api/settings", payload);
     await mutate();
+    await refreshScheduler();
     setStatus("General settings saved.");
   }
 
@@ -80,28 +112,27 @@ export function GeneralConfig() {
             </p>
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="pollIntervalMinutes">Default Poll Interval (Minutes) *</Label>
-            <Input
-              id="pollIntervalMinutes"
-              name="pollIntervalMinutes"
-              type="number"
-              min={1}
-              max={60}
-              defaultValue={data.pollIntervalMinutes}
-            />
+          <div className="space-y-3 md:col-span-2 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Automation Pipeline</p>
+              <SchedulerIndicator />
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Label htmlFor="enableScheduler" className="inline-flex items-center gap-2 font-normal">
+                <input id="enableScheduler" name="enableScheduler" type="checkbox" defaultChecked={data.enableScheduler} />
+                Enable scheduler
+              </Label>
+              <Label htmlFor="autoTriageEnabled" className="inline-flex items-center gap-2 font-normal">
+                <input id="autoTriageEnabled" name="autoTriageEnabled" type="checkbox" defaultChecked={data.autoTriageEnabled} />
+                Auto-triage new incidents
+              </Label>
+              <Label htmlFor="autoPostToJira" className="inline-flex items-center gap-2 font-normal">
+                <input id="autoPostToJira" name="autoPostToJira" type="checkbox" defaultChecked={data.autoPostToJira} />
+                Auto-post results to Jira
+              </Label>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Base scheduler interval used unless Jira-specific value overrides it.
-            </p>
-          </div>
-
-          <div className="space-y-1 self-end">
-            <Label htmlFor="autoTriageEnabled" className="inline-flex items-center gap-2">
-              <input id="autoTriageEnabled" name="autoTriageEnabled" type="checkbox" defaultChecked={data.autoTriageEnabled} />
-              Enable auto-triage (optional)
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Automatically trigger Kindo triage for newly synced incidents.
+              When enabled, the scheduler syncs Jira using the poll interval configured in Jira Settings. Auto-triage sends new incidents to the Kindo agent. Auto-post writes triage results back as Jira comments.
             </p>
           </div>
 

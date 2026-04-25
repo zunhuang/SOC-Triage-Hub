@@ -23,6 +23,8 @@ class KindoSettingsPayload(BaseModel):
 class AppSettingsPayload(BaseModel):
     llmProvider: Literal["openai", "anthropic", "gemini"]
     autoTriageEnabled: bool
+    autoPostToJira: bool = False
+    enableScheduler: bool = False
     logLevel: Literal["debug", "info", "warning", "error"]
     pollIntervalMinutes: int = Field(default=5, ge=1, le=60)
     selectedTriageAgentId: str | None = None
