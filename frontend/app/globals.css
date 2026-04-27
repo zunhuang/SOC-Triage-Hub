@@ -5,15 +5,14 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  Design System - Refined Utility Aesthetic
-  A professional, editorial-inspired design with warm neutrals
-  Using Tailwind's stone palette for warmth
+  Design System — Deloitte Brand
+  Professional consulting aesthetic: Deloitte Green palette, Aptos typography,
+  clean lines, dark sidebar, green accent states.
 */
 @theme {
-  /* Font families - DM Sans for clean, geometric type */
-  --font-display: "DM Sans", system-ui, sans-serif;
-  --font-body: "DM Sans", system-ui, sans-serif;
-  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-display: "Aptos", "Inter", system-ui, sans-serif;
+  --font-body: "Aptos", "Inter", system-ui, sans-serif;
+  --font-sans: "Aptos", "Inter", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
@@ -57,97 +56,96 @@
 }
 
 /*
-  Light theme - Warm Stone palette
-  Professional, editorial aesthetic with warmth
+  Light theme — Deloitte Brand Palette
+  #86BC25 Green | #26890D Mid Green | #046A38 Deep Green | #F1F6E4 Pale Green
 */
 :root {
   --radius: 0.5rem;
-  /* Backgrounds & Foregrounds - Stone palette for warmth */
-  --background: oklch(0.985 0.001 106.424); /* stone-50 #FAFAF9 */
-  --foreground: oklch(0.216 0.006 56.043); /* stone-900 #1C1917 */
-  --card: oklch(1 0 0); /* white */
-  --card-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  --popover: oklch(1 0 0); /* white */
-  --popover-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  /* Primary - Stone dark */
-  --primary: oklch(0.216 0.006 56.043); /* stone-900 */
-  --primary-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  /* Secondary - Stone light */
-  --secondary: oklch(0.970 0.001 106.424); /* stone-100 */
-  --secondary-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  /* Muted - Stone for subdued text */
-  --muted: oklch(0.970 0.001 106.424); /* stone-100 */
-  --muted-foreground: oklch(0.444 0.011 73.639); /* stone-600 #57534E */
-  /* Accent - Lime green for subtle pops */
-  --accent: oklch(0.970 0.001 106.424); /* stone-100 */
-  --accent-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  /* Destructive - Rose */
-  --destructive: oklch(0.586 0.253 17.585); /* rose-600 */
-  /* Borders & Inputs - Stone very light */
-  --border: oklch(0.923 0.003 48.717); /* stone-200 #E7E5E4 */
-  --input: oklch(0.923 0.003 48.717); /* stone-200 */
-  --ring: oklch(0.553 0.013 58.071); /* stone-500 */
-  /* Chart colors */
-  --chart-1: oklch(0.532 0.157 131.589); /* lime-600 #65A30D */
-  --chart-2: oklch(0.6 0.118 184.704); /* teal-600 */
-  --chart-3: oklch(0.398 0.07 227.392); /* cyan-800 */
-  --chart-4: oklch(0.828 0.189 84.429); /* yellow-400 */
-  --chart-5: oklch(0.769 0.188 70.08); /* amber-400 */
-  /* Sidebar - Stone */
-  --sidebar: oklch(0.985 0.001 106.424); /* stone-50 */
-  --sidebar-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  --sidebar-primary: oklch(0.216 0.006 56.043); /* stone-900 */
-  --sidebar-primary-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  --sidebar-accent: oklch(0.970 0.001 106.424); /* stone-100 */
-  --sidebar-accent-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  --sidebar-border: oklch(0.923 0.003 48.717); /* stone-200 */
-  --sidebar-ring: oklch(0.553 0.013 58.071); /* stone-500 */
+
+  --background: #F8F9FA;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+
+  --primary: #86BC25;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #F1F6E4;
+  --secondary-foreground: #1A1A1A;
+
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+
+  --accent: #F1F6E4;
+  --accent-foreground: #046A38;
+
+  --destructive: #DC2626;
+
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #86BC25;
+
+  --chart-1: #86BC25;
+  --chart-2: #26890D;
+  --chart-3: #046A38;
+  --chart-4: #0097A9;
+  --chart-5: #62B5E5;
+
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #E5E7EB;
+  --sidebar-primary: #86BC25;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2A2A2A;
+  --sidebar-accent-foreground: #F3F4F6;
+  --sidebar-border: #333333;
+  --sidebar-ring: #86BC25;
 }
 
 /*
-  Dark theme - Warm Stone dark palette
+  Dark theme — Deloitte dark
 */
 .dark {
-  /* Backgrounds & Foregrounds - Stone dark */
-  --background: oklch(0.216 0.006 56.043); /* stone-900 #1C1917 */
-  --foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  --card: oklch(0.268 0.007 34.298); /* stone-800 #292524 */
-  --card-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  --popover: oklch(0.268 0.007 34.298); /* stone-800 */
-  --popover-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  /* Primary - Stone light */
-  --primary: oklch(0.923 0.003 48.717); /* stone-200 */
-  --primary-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  /* Secondary - Stone dark */
-  --secondary: oklch(0.318 0.008 43.185); /* stone-700 */
-  --secondary-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  /* Muted - Stone dark */
-  --muted: oklch(0.318 0.008 43.185); /* stone-700 */
-  --muted-foreground: oklch(0.709 0.01 56.259); /* stone-400 #A8A29E */
-  /* Accent - Stone dark */
-  --accent: oklch(0.318 0.008 43.185); /* stone-700 */
-  --accent-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  /* Destructive - Rose lighter for dark mode */
-  --destructive: oklch(0.712 0.194 13.428); /* rose-400 */
-  /* Borders & Inputs - Stone dark */
-  --border: oklch(0.370 0.010 67.558); /* stone-600 */
-  --input: oklch(0.370 0.010 67.558); /* stone-600 */
-  --ring: oklch(0.553 0.013 58.071); /* stone-500 */
-  /* Chart colors - brighter for dark mode */
-  --chart-1: oklch(0.648 0.2 131.684); /* lime-500 */
-  --chart-2: oklch(0.696 0.17 162.48); /* emerald-400 */
-  --chart-3: oklch(0.769 0.188 70.08); /* amber-400 */
-  --chart-4: oklch(0.627 0.265 303.9); /* purple-500 */
-  --chart-5: oklch(0.645 0.246 16.439); /* rose-500 */
-  /* Sidebar - Stone dark */
-  --sidebar: oklch(0.268 0.007 34.298); /* stone-800 */
-  --sidebar-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  --sidebar-primary: oklch(0.648 0.2 131.684); /* lime-500 */
-  --sidebar-primary-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
-  --sidebar-accent: oklch(0.318 0.008 43.185); /* stone-700 */
-  --sidebar-accent-foreground: oklch(0.985 0.001 106.424); /* stone-50 */
-  --sidebar-border: oklch(0.370 0.010 67.558); /* stone-600 */
-  --sidebar-ring: oklch(0.553 0.013 58.071); /* stone-500 */
+  --background: #111111;
+  --foreground: #F3F4F6;
+  --card: #1A1A1A;
+  --card-foreground: #F3F4F6;
+  --popover: #1A1A1A;
+  --popover-foreground: #F3F4F6;
+
+  --primary: #86BC25;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #2A2A2A;
+  --secondary-foreground: #F3F4F6;
+
+  --muted: #2A2A2A;
+  --muted-foreground: #9CA3AF;
+
+  --accent: #1E2A10;
+  --accent-foreground: #86BC25;
+
+  --destructive: #EF4444;
+
+  --border: #333333;
+  --input: #333333;
+  --ring: #86BC25;
+
+  --chart-1: #86BC25;
+  --chart-2: #43B02A;
+  --chart-3: #0097A9;
+  --chart-4: #62B5E5;
+  --chart-5: #97D700;
+
+  --sidebar: #111111;
+  --sidebar-foreground: #E5E7EB;
+  --sidebar-primary: #86BC25;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2A2A2A;
+  --sidebar-accent-foreground: #F3F4F6;
+  --sidebar-border: #333333;
+  --sidebar-ring: #86BC25;
 }
 
 /* Base layer styles */
@@ -165,21 +163,40 @@
   code, pre, kbd {
     font-family: var(--font-mono);
   }
+
+  /* Green focus rings globally */
+  input:focus, select:focus, textarea:focus {
+    @apply ring-2 ring-[#86BC25]/40 outline-none;
+  }
+
+  /* Checkbox styling — green when checked */
+  input[type="checkbox"] {
+    @apply accent-[#86BC25];
+  }
 }
 
-/* Subtle page fade-in animation */
+/* Deloitte branded table styling */
+@layer components {
+  .deloitte-table thead th {
+    @apply bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-wider;
+  }
+  .deloitte-table tbody tr:nth-child(even) {
+    @apply bg-[#F1F6E4]/40;
+  }
+  .deloitte-table tbody tr {
+    @apply transition-colors hover:bg-[#F1F6E4];
+  }
+}
+
+/* Animations */
 @layer utilities {
   .animate-fade-in {
     animation: fade-in 200ms ease-out;
   }
 
   @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .animate-collapse-down {
@@ -191,20 +208,12 @@
   }
 
   @keyframes collapse-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-collapsible-content-height);
-    }
+    from { height: 0; }
+    to { height: var(--radix-collapsible-content-height); }
   }
 
   @keyframes collapse-up {
-    from {
-      height: var(--radix-collapsible-content-height);
-    }
-    to {
-      height: 0;
-    }
+    from { height: var(--radix-collapsible-content-height); }
+    to { height: 0; }
   }
 }

@@ -12,11 +12,31 @@ interface PriorityCardsProps {
   onSelect: (bucket?: PriorityBucket) => void;
 }
 
-const toneMap: Record<PriorityBucket, string> = {
-  "High+": "border-rose-500/40 bg-rose-500/5",
-  Medium: "border-amber-500/40 bg-amber-500/5",
-  Low: "border-yellow-500/40 bg-yellow-500/5",
-  Lowest: "border-cyan-500/40 bg-cyan-500/5"
+const toneMap: Record<PriorityBucket, { border: string; bg: string; icon: string; count: string }> = {
+  "High+": {
+    border: "border-red-600/30",
+    bg: "bg-red-50",
+    icon: "text-red-600",
+    count: "text-red-700",
+  },
+  Medium: {
+    border: "border-amber-500/30",
+    bg: "bg-amber-50",
+    icon: "text-amber-600",
+    count: "text-amber-700",
+  },
+  Low: {
+    border: "border-[#86BC25]/30",
+    bg: "bg-[#F1F6E4]",
+    icon: "text-[#26890D]",
+    count: "text-[#046A38]",
+  },
+  Lowest: {
+    border: "border-[#0097A9]/30",
+    bg: "bg-[#E6F7F9]",
+    icon: "text-[#0097A9]",
+    count: "text-[#007585]",
+  },
 };
 
 const iconMap: Record<PriorityBucket, typeof ShieldAlert> = {
@@ -35,16 +55,22 @@ export function PriorityCards({ counts, selected, onSelect }: PriorityCardsProps
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {BUCKETS.map((bucket) => {
         const Icon = iconMap[bucket];
+        const tone = toneMap[bucket];
         const isActive = selected === bucket;
         return (
           <button key={bucket} onClick={() => onSelect(isActive ? undefined : bucket)} className="text-left">
-            <Card className={cn("transition-colors hover:border-primary/60", toneMap[bucket], isActive && "ring-2 ring-primary/40")}>
+            <Card className={cn(
+              "transition-all hover:shadow-md",
+              tone.border,
+              tone.bg,
+              isActive && "ring-2 ring-[#86BC25] shadow-md"
+            )}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">{bucket}</CardTitle>
-                <Icon className="size-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-foreground/80">{bucket}</CardTitle>
+                <Icon className={cn("size-5", tone.icon)} />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-semibold">{counts[bucket]}</div>
+                <div className={cn("text-3xl font-bold tabular-nums", tone.count)}>{counts[bucket]}</div>
               </CardContent>
             </Card>
           </button>

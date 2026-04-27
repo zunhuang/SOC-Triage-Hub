@@ -86,10 +86,10 @@ export function IncidentTable({
   }
 
   return (
-    <div className="rounded-xl border bg-card p-2">
-      <Table>
+    <div className="overflow-hidden rounded-lg border bg-card">
+      <Table className="deloitte-table">
         <TableHeader>
-          <TableRow>
+          <TableRow className="border-none">
             <TableHead className="w-12">
               <input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="select all incidents" />
             </TableHead>
@@ -105,7 +105,7 @@ export function IncidentTable({
         </TableHeader>
         <TableBody>
           {incidents.map((incident) => (
-            <TableRow key={incident._id}>
+            <TableRow key={incident._id} className="border-b border-gray-100">
               <TableCell>
                 <input
                   type="checkbox"
@@ -114,7 +114,7 @@ export function IncidentTable({
                   aria-label={`select ${incident.jiraKey}`}
                 />
               </TableCell>
-              <TableCell className="font-medium">{incident.jiraKey}</TableCell>
+              <TableCell className="font-semibold text-[#046A38]">{incident.jiraKey}</TableCell>
               <TableCell className="max-w-[280px] truncate">{incident.summary}</TableCell>
               <TableCell>
                 <Badge variant={priorityVariant[incident.priority] ?? "outline"}>{incident.priority}</Badge>

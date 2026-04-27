@@ -18,26 +18,29 @@ export function AppSidebar() {
   }
 
   return (
-    <aside className="w-64 shrink-0 border-r bg-background/80 p-4">
-      <nav className="space-y-1">
+    <aside className="w-56 shrink-0 bg-[#1A1A1A] text-gray-300">
+      <div className="px-4 pb-2 pt-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Navigation</p>
+      </div>
+      <nav className="space-y-0.5 px-2">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =
             item.href === "/"
-              ? pathname === "/"
+              ? pathname === "/" || pathname === "/dashboard"
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+              className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all ${
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground/80 hover:bg-accent hover:text-foreground"
+                  ? "border-l-2 border-[#86BC25] bg-white/5 font-medium text-white"
+                  : "border-l-2 border-transparent text-gray-400 hover:bg-white/5 hover:text-white"
               }`}
             >
-              <Icon className="size-4" />
+              <Icon className={`size-4 ${isActive ? "text-[#86BC25]" : ""}`} />
               <span>{item.label}</span>
             </Link>
           );
