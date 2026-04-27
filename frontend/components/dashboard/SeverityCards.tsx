@@ -14,28 +14,28 @@ interface PriorityCardsProps {
 
 const toneMap: Record<PriorityBucket, { border: string; bg: string; icon: string; count: string }> = {
   "High+": {
-    border: "border-red-600/30",
-    bg: "bg-red-50",
-    icon: "text-red-600",
-    count: "text-red-700",
+    border: "border-[#DA291C]/30",
+    bg: "bg-[#DA291C]/5",
+    icon: "text-[#DA291C]",
+    count: "text-[#DA291C]",
   },
   Medium: {
-    border: "border-amber-500/30",
-    bg: "bg-amber-50",
-    icon: "text-amber-600",
-    count: "text-amber-700",
+    border: "border-[#E8A317]/30",
+    bg: "bg-[#E8A317]/5",
+    icon: "text-[#E8A317]",
+    count: "text-[#B07D12]",
   },
   Low: {
     border: "border-[#86BC25]/30",
     bg: "bg-[#F1F6E4]",
-    icon: "text-[#26890D]",
+    icon: "text-[#86BC25]",
     count: "text-[#046A38]",
   },
   Lowest: {
-    border: "border-[#0097A9]/30",
-    bg: "bg-[#E6F7F9]",
-    icon: "text-[#0097A9]",
-    count: "text-[#007585]",
+    border: "border-[#00A3E0]/30",
+    bg: "bg-[#00A3E0]/5",
+    icon: "text-[#00A3E0]",
+    count: "text-[#007AA8]",
   },
 };
 

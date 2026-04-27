@@ -18,7 +18,7 @@ export function AppSidebar() {
   }
 
   return (
-    <aside className="w-56 shrink-0 bg-[#1A1A1A] text-gray-300">
+    <aside className="w-56 shrink-0 bg-[#282728] text-gray-300">
       <div className="px-4 pb-2 pt-5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Navigation</p>
       </div>

@@ -105,7 +105,7 @@ export function IncidentTable({
         </TableHeader>
         <TableBody>
           {incidents.map((incident) => (
-            <TableRow key={incident._id} className="border-b border-gray-100">
+            <TableRow key={incident._id} className="border-b border-[#E6E6E6]">
               <TableCell>
                 <input
                   type="checkbox"

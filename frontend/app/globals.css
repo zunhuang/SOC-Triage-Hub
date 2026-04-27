@@ -56,50 +56,52 @@
 }
 
 /*
-  Light theme — Deloitte Brand Palette
-  #86BC25 Green | #26890D Mid Green | #046A38 Deep Green | #F1F6E4 Pale Green
+  Light theme — Deloitte Brand Palette (official tokens)
+  green: #86BC25 | greenHover: #75A521 | deep: #046A38 | pale: #F1F6E4
+  blue: #00A3E0 | amber: #E8A317 | red: #DA291C
+  dark: #282728 | mid: #555555 | border: #E6E6E6 | bgSoft: #F5F6F4
 */
 :root {
   --radius: 0.5rem;
 
-  --background: #F8F9FA;
-  --foreground: #1A1A1A;
+  --background: #F5F6F4;
+  --foreground: #282728;
   --card: #FFFFFF;
-  --card-foreground: #1A1A1A;
+  --card-foreground: #282728;
   --popover: #FFFFFF;
-  --popover-foreground: #1A1A1A;
+  --popover-foreground: #282728;
 
   --primary: #86BC25;
   --primary-foreground: #FFFFFF;
 
   --secondary: #F1F6E4;
-  --secondary-foreground: #1A1A1A;
+  --secondary-foreground: #282728;
 
-  --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
+  --muted: #F5F6F4;
+  --muted-foreground: #555555;
 
   --accent: #F1F6E4;
   --accent-foreground: #046A38;
 
-  --destructive: #DC2626;
+  --destructive: #DA291C;
 
-  --border: #E5E7EB;
-  --input: #E5E7EB;
+  --border: #E6E6E6;
+  --input: #E6E6E6;
   --ring: #86BC25;
 
   --chart-1: #86BC25;
-  --chart-2: #26890D;
-  --chart-3: #046A38;
-  --chart-4: #0097A9;
-  --chart-5: #62B5E5;
+  --chart-2: #046A38;
+  --chart-3: #00A3E0;
+  --chart-4: #E8A317;
+  --chart-5: #DA291C;
 
-  --sidebar: #1A1A1A;
-  --sidebar-foreground: #E5E7EB;
+  --sidebar: #282728;
+  --sidebar-foreground: #E6E6E6;
   --sidebar-primary: #86BC25;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2A2A2A;
-  --sidebar-accent-foreground: #F3F4F6;
-  --sidebar-border: #333333;
+  --sidebar-accent: #3A3A3A;
+  --sidebar-accent-foreground: #F5F6F4;
+  --sidebar-border: #3A3A3A;
   --sidebar-ring: #86BC25;
 }
 
@@ -107,44 +109,44 @@
   Dark theme — Deloitte dark
 */
 .dark {
-  --background: #111111;
-  --foreground: #F3F4F6;
-  --card: #1A1A1A;
-  --card-foreground: #F3F4F6;
-  --popover: #1A1A1A;
-  --popover-foreground: #F3F4F6;
+  --background: #1A1A1A;
+  --foreground: #F5F6F4;
+  --card: #282728;
+  --card-foreground: #F5F6F4;
+  --popover: #282728;
+  --popover-foreground: #F5F6F4;
 
   --primary: #86BC25;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #2A2A2A;
-  --secondary-foreground: #F3F4F6;
+  --secondary: #3A3A3A;
+  --secondary-foreground: #F5F6F4;
 
-  --muted: #2A2A2A;
-  --muted-foreground: #9CA3AF;
+  --muted: #3A3A3A;
+  --muted-foreground: #999999;
 
   --accent: #1E2A10;
   --accent-foreground: #86BC25;
 
-  --destructive: #EF4444;
+  --destructive: #DA291C;
 
-  --border: #333333;
-  --input: #333333;
+  --border: #3A3A3A;
+  --input: #3A3A3A;
   --ring: #86BC25;
 
   --chart-1: #86BC25;
-  --chart-2: #43B02A;
-  --chart-3: #0097A9;
-  --chart-4: #62B5E5;
-  --chart-5: #97D700;
+  --chart-2: #86EB22;
+  --chart-3: #00A3E0;
+  --chart-4: #E8A317;
+  --chart-5: #DA291C;
 
-  --sidebar: #111111;
-  --sidebar-foreground: #E5E7EB;
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #E6E6E6;
   --sidebar-primary: #86BC25;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2A2A2A;
-  --sidebar-accent-foreground: #F3F4F6;
-  --sidebar-border: #333333;
+  --sidebar-accent: #3A3A3A;
+  --sidebar-accent-foreground: #F5F6F4;
+  --sidebar-border: #3A3A3A;
   --sidebar-ring: #86BC25;
 }
 
@@ -178,10 +180,10 @@
 /* Deloitte branded table styling */
 @layer components {
   .deloitte-table thead th {
-    @apply bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-wider;
+    @apply bg-[#282728] text-white text-xs font-semibold uppercase tracking-wider;
   }
   .deloitte-table tbody tr:nth-child(even) {
-    @apply bg-[#F1F6E4]/40;
+    @apply bg-[#FAFBF7];
   }
   .deloitte-table tbody tr {
     @apply transition-colors hover:bg-[#F1F6E4];

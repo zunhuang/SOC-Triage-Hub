@@ -13,13 +13,13 @@ const variantByStatus: Record<IncidentStatus, "default" | "secondary" | "destruc
 };
 
 const classByStatus: Partial<Record<IncidentStatus, string>> = {
-  "For Triage": "border-gray-300 bg-gray-100 text-gray-700",
-  "Triage In Progress": "border-amber-400 bg-amber-50 text-amber-800",
+  "For Triage": "border-[#E6E6E6] bg-[#F5F6F4] text-[#555555]",
+  "Triage In Progress": "border-[#E8A317] bg-[#E8A317]/10 text-[#B07D12]",
   "Triage Complete": "border-[#86BC25] bg-[#86BC25] text-white",
-  "Triage Failed": "border-red-600 bg-red-600 text-white",
-  "Remediation Pending": "border-[#0097A9] bg-[#E6F7F9] text-[#007585]",
+  "Triage Failed": "border-[#DA291C] bg-[#DA291C] text-white",
+  "Remediation Pending": "border-[#00A3E0] bg-[#00A3E0]/10 text-[#007AA8]",
   Resolved: "border-[#046A38] bg-[#046A38] text-white",
-  Closed: "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+  Closed: "border-[#282728] bg-[#282728] text-white"
 };
 
 export function TriageStatusBadge({ status }: { status: string }) {

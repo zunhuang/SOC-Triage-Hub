@@ -13,7 +13,7 @@ export function RecentActivity({ entries }: { entries: ActivityFeedEntry[] }) {
         {entries.map((entry, index) => (
           <div
             key={entry.id || entry._id || `${entry.timestamp}-${entry.action}-${index}`}
-            className="flex items-start gap-3 border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
+            className="flex items-start gap-3 border-b border-[#E6E6E6] pb-3 last:border-b-0 last:pb-0"
           >
             <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#86BC25]" />
             <div className="min-w-0">
