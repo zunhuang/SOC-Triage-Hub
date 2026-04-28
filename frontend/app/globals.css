@@ -4,16 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
-  Design System — Deloitte Brand
-  Professional consulting aesthetic: Deloitte Green palette, Aptos typography,
-  clean lines, dark sidebar, green accent states.
-*/
 @theme {
-  --font-display: "Aptos", "Inter", system-ui, sans-serif;
-  --font-body: "Aptos", "Inter", system-ui, sans-serif;
-  --font-sans: "Aptos", "Inter", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Open Sans", "Inter", system-ui, sans-serif;
+  --font-body: "Open Sans", "Inter", system-ui, sans-serif;
+  --font-sans: "Open Sans", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 /* Shadcn theme integration */
@@ -55,30 +50,34 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/*
-  Light theme — Deloitte Brand Palette (official tokens)
-  green: #86BC25 | greenHover: #75A521 | deep: #046A38 | pale: #F1F6E4
-  blue: #00A3E0 | amber: #E8A317 | red: #DA291C
-  dark: #282728 | mid: #555555 | border: #E6E6E6 | bgSoft: #F5F6F4
-*/
 :root {
   --radius: 0.5rem;
 
-  --background: #F5F6F4;
-  --foreground: #282728;
+  /* Deloitte spec tokens */
+  --dl-green: #86BC25;
+  --dl-green-dark: #6FA01E;
+  --dl-green-darker: #5A8217;
+  --dl-neon-green: #86EB22;
+  --dl-blue: #00A3E0;
+  --dl-blue-dark: #005587;
+  --dl-border-strong: #D4D4D4;
+  --dl-text-secondary: #6B6B6B;
+
+  --background: #F4F5F2;
+  --foreground: #1A1A1A;
   --card: #FFFFFF;
-  --card-foreground: #282728;
+  --card-foreground: #1A1A1A;
   --popover: #FFFFFF;
-  --popover-foreground: #282728;
+  --popover-foreground: #1A1A1A;
 
   --primary: #86BC25;
   --primary-foreground: #FFFFFF;
 
   --secondary: #F1F6E4;
-  --secondary-foreground: #282728;
+  --secondary-foreground: #1A1A1A;
 
-  --muted: #F5F6F4;
-  --muted-foreground: #555555;
+  --muted: #F4F5F2;
+  --muted-foreground: #6B6B6B;
 
   --accent: #F1F6E4;
   --accent-foreground: #046A38;
@@ -177,10 +176,12 @@
   }
 }
 
-/* Deloitte branded table styling */
+/* Deloitte branded table styling — !important to override shadcn TableHead's text-foreground */
 @layer components {
   .deloitte-table thead th {
-    @apply bg-[#282728] text-white text-xs font-semibold uppercase tracking-wider;
+    background: #282728 !important;
+    color: #fff !important;
+    @apply text-xs font-semibold uppercase tracking-wider;
   }
   .deloitte-table tbody tr:nth-child(even) {
     @apply bg-[#FAFBF7];
@@ -190,32 +191,87 @@
   }
 }
 
-/* Animations */
 @layer utilities {
   .animate-fade-in {
     animation: fade-in 200ms ease-out;
+  }
+  .tabular-nums {
+    font-feature-settings: 'tnum';
+  }
+  .animate-collapse-down {
+    animation: collapse-down 200ms ease-out;
+  }
+  .animate-collapse-up {
+    animation: collapse-up 200ms ease-out;
+  }
+  .animate-live-pulse {
+    animation: livePulse 2s ease-out infinite;
   }
 
   @keyframes fade-in {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
-
-  .animate-collapse-down {
-    animation: collapse-down 200ms ease-out;
-  }
-
-  .animate-collapse-up {
-    animation: collapse-up 200ms ease-out;
-  }
-
   @keyframes collapse-down {
     from { height: 0; }
     to { height: var(--radix-collapsible-content-height); }
   }
-
   @keyframes collapse-up {
     from { height: var(--radix-collapsible-content-height); }
     to { height: 0; }
   }
+  @keyframes livePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(134,235,34,0.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(134,235,34,0); }
+    100% { box-shadow: 0 0 0 0 rgba(134,235,34,0); }
+  }
+}
+
+/* Dashboard-specific: queue table with cream headers */
+@layer components {
+  .queue-table thead th {
+    @apply bg-[#FAFBF8] text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] border-b border-[#E6E6E6];
+  }
+  .queue-table tbody tr {
+    @apply transition-colors hover:bg-[#FAFBF8] cursor-pointer;
+  }
+  .queue-table tbody td {
+    @apply border-b border-[#F0F0F0] text-[13px] align-middle;
+  }
+  .queue-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+}
+
+/* Pipeline connector chevrons */
+@layer components {
+  .pipeline-stage:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: -7px;
+    top: 26px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-top: 1px solid #E6E6E6;
+    border-right: 1px solid #E6E6E6;
+    transform: rotate(45deg);
+    z-index: 2;
+  }
+}
+
+/* Responsive: <1200px */
+@media (max-width: 1200px) {
+  .dashboard-two-col { grid-template-columns: 1fr !important; }
+  .sev-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .pipeline-stages { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+  .pipeline-stage { border-right: none !important; padding: 0 !important; }
+  .pipeline-stage::after { display: none !important; }
+}
+
+/* Responsive: <800px */
+@media (max-width: 800px) {
+  .app-sidebar { display: none !important; }
+  .sev-grid-4 { grid-template-columns: 1fr !important; }
+  .dashboard-main { padding: 20px 18px 36px !important; }
 }

@@ -1,22 +1,23 @@
 import type { Metadata } from "next";
-import { DM_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Open_Sans, JetBrains_Mono } from "next/font/google";
 import { SessionGate } from "@/components/auth/SessionGate";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const openSans = Open_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
-  display: "swap"
+  display: "swap",
+  weight: ["300", "400", "600", "700"]
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
-  weight: ["400", "500", "600"]
+  weight: ["400", "500"]
 });
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${ibmPlexMono.variable}`}>
+    <html lang="en" className={`${openSans.variable} ${jetBrainsMono.variable}`}>
       <body className="animate-fade-in">
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/35 flex flex-col">
           <AppHeader />

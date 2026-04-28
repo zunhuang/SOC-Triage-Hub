@@ -27,6 +27,15 @@ export function useIncident(id: string, config?: SWRConfiguration<Incident>) {
   return useSWR<Incident>(id ? `/api/incidents/${id}` : null, fetcher, config);
 }
 
+export function useForTriageCount() {
+  const { data } = useSWR<IncidentListResponse>(
+    "/api/incidents?page=1&limit=1&triageStatus=For+Triage",
+    fetcher,
+    { refreshInterval: 30000 }
+  );
+  return data?.pagination?.total ?? 0;
+}
+
 export async function syncIncidents() {
   return apiClient.post<SyncSummary>("/api/incidents/sync");
 }
