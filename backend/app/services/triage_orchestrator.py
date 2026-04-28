@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -54,6 +55,41 @@ def _extract_agent_report(raw: Any) -> str:
 
     # The final report is usually the last and longest text block
     return text_parts[-1]
+
+
+_VERDICT_KEYWORDS: list[tuple[str, str]] = [
+    ("benign true positive", "benign_tp"),
+    ("false positive", "false_positive"),
+    ("true positive", "true_positive"),
+    ("no action required", "benign_tp"),
+    ("no immediate action", "benign_tp"),
+    ("escalation recommended", "needs_analyst"),
+    ("requires analyst", "needs_analyst"),
+    ("malicious", "true_positive"),
+    ("benign", "benign_tp"),
+]
+
+
+def _extract_verdict(report_text: str) -> tuple[str | None, str | None]:
+    """Extract verdict and headline from a triage report using text patterns."""
+    if not report_text:
+        return None, None
+
+    lower = report_text.lower()
+    verdict = None
+    for keyword, verdict_value in _VERDICT_KEYWORDS:
+        if keyword in lower:
+            verdict = verdict_value
+            break
+
+    headline_match = re.search(
+        r"\*\*Headline[:\s]*\*\*\s*(.+?)(?:\n\n|\n##|\n\*\*)",
+        report_text,
+        re.DOTALL,
+    )
+    verdict_summary = headline_match.group(1).strip()[:300] if headline_match else None
+
+    return verdict, verdict_summary
 
 
 def _parse_remediation_steps(raw: Any) -> list[dict[str, Any]]:
@@ -332,11 +368,15 @@ async def run_triage_for_incident(
     output = run_result.get("output") or run_result.get("result") or run_result.get("data") or {}
     raw_text = _extract_agent_report(output)
 
+    verdict, verdict_summary = _extract_verdict(raw_text)
+
     triage_results = {
         "agentOutput": raw_text,
         "triageAgent": agent_id,
         "kindoRunId": run_id,
         "completedAt": datetime.now(timezone.utc),
+        "verdict": verdict,
+        "verdictSummary": verdict_summary,
     }
 
     await db.incidents.update_one(

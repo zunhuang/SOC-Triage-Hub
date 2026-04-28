@@ -85,13 +85,15 @@ async def list_incidents(
 
     sort_direction = -1 if sortOrder.lower() == "desc" else 1
     if sortBy == "priority":
-        sort_fields = [("priorityRank", sort_direction), ("createdAt", -1)]
+        # priorityRank: 1=Highest … 5=Lowest — ascending = most severe first
+        prio_dir = 1 if sortOrder.lower() == "desc" else -1
+        sort_fields = [("priorityRank", prio_dir), ("createdAt", -1)]
     elif sortBy == "createdAt":
         sort_fields = [("createdAt", sort_direction)]
     elif sortBy == "updatedAt":
         sort_fields = [("updatedAt", sort_direction)]
     else:
-        sort_fields = [("priorityRank", -1), ("createdAt", -1)]
+        sort_fields = [("priorityRank", 1), ("createdAt", -1)]
 
     cursor = db.incidents.find(mongo_filter).sort(sort_fields).skip((page - 1) * limit).limit(limit)
     data = []

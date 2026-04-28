@@ -31,6 +31,8 @@ export interface TriageResults {
   triageAgent: string;
   kindoRunId: string;
   completedAt: string;
+  verdict?: string;
+  verdictSummary?: string;
 }
 
 export interface Incident {
