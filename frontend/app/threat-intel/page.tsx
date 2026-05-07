@@ -5,7 +5,7 @@ import type { QueueMeta } from "@/components/queue/QueuePage";
 
 const META: QueueMeta = {
   queueType: "threat_intel",
-  accentColor: "#E87722",
+  accentColor: "#00D4FF",
   eyebrow: "Threat Intelligence",
   title: "IOC Sweep",
   titleAccent: "Workbench",
