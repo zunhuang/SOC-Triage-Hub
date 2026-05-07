@@ -7,9 +7,9 @@ import { useForTriageCount } from "@/hooks/use-incidents";
 
 const QUEUE_NAV_ITEMS = [
   { href: "/soc-triage",    label: "SOC Triage",          icon: AlertTriangle, queueType: "soc_triage",    color: "#86BC25" },
-  { href: "/threat-intel",  label: "Threat Intelligence", icon: Shield,        queueType: "threat_intel",  color: "#00D4FF" },
-  { href: "/threat-hunt",   label: "Threat Hunt",         icon: Search,        queueType: "threat_hunt",   color: "#FF3B5C" },
-  { href: "/detection-eng", label: "Detection Eng",       icon: Code2,         queueType: "detection_eng", color: "#B44FFF" },
+  { href: "/threat-intel",  label: "Threat Intelligence", icon: Shield,        queueType: "threat_intel",  color: "#F59E0B" },
+  { href: "/threat-hunt",   label: "Threat Hunt",         icon: Search,        queueType: "threat_hunt",   color: "#EF4444" },
+  { href: "/detection-eng", label: "Detection Eng",       icon: Code2,         queueType: "detection_eng", color: "#6366F1" },
 ];
 
 function QueueNavItem({ item, isActive }: { item: typeof QUEUE_NAV_ITEMS[0]; isActive: boolean }) {
