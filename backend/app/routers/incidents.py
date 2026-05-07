@@ -44,6 +44,7 @@ async def list_incidents(
     limit: int = Query(default=20, ge=1, le=100),
     priority: str | None = None,
     triageStatus: str | None = None,
+    queueType: str | None = Query(default=None, alias="queueType"),
     search: str | None = None,
     sortBy: str = "priority",
     sortOrder: str = "desc",
@@ -55,6 +56,8 @@ async def list_incidents(
 
     if priority:
         mongo_filter["priority"] = priority
+    if queueType:
+        mongo_filter["queueType"] = queueType
     if triageStatus:
         statuses = status_filter_values(triageStatus)
         if len(statuses) == 1:

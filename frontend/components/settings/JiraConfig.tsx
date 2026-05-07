@@ -22,12 +22,11 @@ export function JiraConfig() {
     return {
       ...data,
       jira: {
+        ...data.jira,
         baseUrl: String(formData.get("baseUrl") ?? "").trim().replace(/\/+$/, ""),
         username: String(formData.get("username") ?? "").trim(),
         password: passwordInput || data.jira.password,
-        jql: String(formData.get("jql") ?? "").trim(),
-        pollIntervalMinutes: Number(formData.get("pollIntervalMinutes") ?? 5)
-      }
+      },
     };
   }
 
@@ -90,7 +89,7 @@ export function JiraConfig() {
         <div>
           <CardTitle>Jira Data Center</CardTitle>
           <CardDescription className="mt-1">
-            Configure how issues are pulled from your Jira instance.
+            Shared connection credentials — used by all work queues. JQL and poll interval are configured per queue in each queue's settings tab.
           </CardDescription>
           <p className="mt-1 text-xs text-muted-foreground">
             Auth mode: <strong>Basic Auth (username + password/token)</strong>.
@@ -134,33 +133,6 @@ export function JiraConfig() {
               type="password"
               defaultValue={data.jira.password}
               placeholder="Enter Jira password or API token"
-              required
-            />
-          </div>
-
-          <div className="space-y-1 md:col-span-2">
-            <Label htmlFor="jql">JQL Filter *</Label>
-            <Input
-              id="jql"
-              name="jql"
-              defaultValue={data.jira.jql}
-              placeholder='project = "SOC" AND statusCategory != Done'
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              JQL query to select which issues are synced. Only issues matching this query will be imported.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="pollIntervalMinutes">Poll Interval (Minutes) *</Label>
-            <Input
-              id="pollIntervalMinutes"
-              name="pollIntervalMinutes"
-              type="number"
-              defaultValue={data.jira.pollIntervalMinutes}
-              min={1}
-              max={60}
               required
             />
           </div>

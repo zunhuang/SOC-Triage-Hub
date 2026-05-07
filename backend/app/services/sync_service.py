@@ -156,3 +156,103 @@ async def run_jira_sync(db: AsyncIOMotorDatabase) -> dict[str, int | list[str]]:
     )
 
     return summary
+
+
+async def run_queue_sync(
+    db: AsyncIOMotorDatabase,
+    queue_type: str,
+    queue_cfg: dict,
+) -> dict[str, int | list[str]]:
+    """Sync a queue using its own JQL with shared Jira credentials."""
+    runtime_settings = await get_settings(db)
+    jql = queue_cfg.get("jql", "")
+    if not jql:
+        return {"new": 0, "updated": 0, "unchanged": 0, "closed": 0, "newIncidentIds": []}
+
+    merged = {
+        **runtime_settings,
+        "jira": {**runtime_settings.get("jira", {}), "jql": jql},
+    }
+    client = JiraClient.from_settings(merged)
+    issues = await client.fetch_issues(max_results=100)
+
+    summary: dict[str, int | list[str]] = {
+        "new": 0,
+        "updated": 0,
+        "unchanged": 0,
+        "closed": 0,
+        "newIncidentIds": [],
+    }
+
+    for raw in issues:
+        mapped = map_jira_issue(raw)
+        mapped["queueType"] = queue_type
+        existing = await db.incidents.find_one({"jiraKey": mapped["jiraKey"]})
+
+        if existing is None:
+            mapped.update(
+                {
+                    "triageStatus": "For Triage",
+                    "activityLog": [
+                        {
+                            "timestamp": datetime.now(timezone.utc),
+                            "action": "sync",
+                            "actor": "system",
+                            "details": f"New issue synced from Jira ({queue_type})",
+                        }
+                    ],
+                    "createdAt": datetime.now(timezone.utc),
+                }
+            )
+            insert_result = await db.incidents.insert_one(mapped)
+            await record_activity(
+                db,
+                action="Issue Synced",
+                message=f"{mapped['jiraKey']} imported from Jira ({queue_type})",
+                actor="system",
+                incident_number=mapped["jiraKey"],
+            )
+            summary["new"] = int(summary["new"]) + 1
+            summary["newIncidentIds"].append(str(insert_result.inserted_id))
+            continue
+
+        if existing.get("syncHash") == mapped["syncHash"]:
+            summary["unchanged"] = int(summary["unchanged"]) + 1
+            continue
+
+        update_doc = {
+            **mapped,
+            "activityLog": [
+                *existing.get("activityLog", []),
+                {
+                    "timestamp": datetime.now(timezone.utc),
+                    "action": "sync",
+                    "actor": "system",
+                    "details": "Issue updated from Jira",
+                },
+            ],
+        }
+
+        status_value = str(mapped.get("status", "")).lower()
+        if status_value in {"resolved", "closed", "done"}:
+            update_doc["triageStatus"] = "Closed" if status_value == "closed" else "Resolved"
+            summary["closed"] = int(summary["closed"]) + 1
+        else:
+            update_doc["triageStatus"] = canonicalize_triage_status(
+                existing.get("triageStatus", "For Triage")
+            )
+
+        await db.incidents.update_one({"_id": existing["_id"]}, {"$set": update_doc})
+        summary["updated"] = int(summary["updated"]) + 1
+
+    await record_activity(
+        db,
+        action="Queue Sync",
+        message=(
+            f"[{queue_type}] Sync complete: {summary['new']} new, {summary['updated']} updated, "
+            f"{summary['unchanged']} unchanged, {summary['closed']} closed"
+        ),
+        actor="system",
+    )
+
+    return summary

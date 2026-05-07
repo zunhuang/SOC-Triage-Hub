@@ -25,27 +25,57 @@ def _get_sync_job():
     return scheduled_sync_job
 
 
+def _get_queue_sync_job():
+    from app.main import scheduled_queue_sync_job
+    return scheduled_queue_sync_job
+
+
 @router.get("/status")
 async def scheduler_status(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     sched = _get_scheduler()
     running = sched.running
-    job = sched.get_job("jira-sync") if running else None
-
     runtime = await get_settings(db)
-    enabled = runtime.get("enableScheduler", False) or env_settings.ENABLE_INTERNAL_SCHEDULER
+    queues = runtime.get("queues", [])
 
+    if queues:
+        # Per-queue status
+        queue_jobs = []
+        for q in queues:
+            qt = q["queueType"]
+            job_id = f"queue-sync-{qt.replace('_', '-')}"
+            job = sched.get_job(job_id) if running else None
+            queue_jobs.append({
+                "queueType": qt,
+                "enabled": q.get("enableScheduler", False),
+                "jobScheduled": job is not None,
+                "nextRunAt": job.next_run_time.astimezone(timezone.utc).isoformat() if job and job.next_run_time else None,
+                "intervalMinutes": int(job.trigger.interval.total_seconds() / 60) if job else q.get("pollIntervalMinutes", 5),
+            })
+        return {
+            "mode": "per_queue",
+            "running": running,
+            "queues": queue_jobs,
+            # Legacy fields for backward compat with frontend polling
+            "enabled": any(q.get("enableScheduler") for q in queues),
+            "jobScheduled": any(j["jobScheduled"] for j in queue_jobs),
+            "nextRunAt": next((j["nextRunAt"] for j in queue_jobs if j["nextRunAt"]), None),
+            "intervalMinutes": None,
+        }
+
+    # Legacy single-job status
+    enabled = runtime.get("enableScheduler", False) or env_settings.ENABLE_INTERNAL_SCHEDULER
+    job = sched.get_job("jira-sync") if running else None
     result: dict = {
+        "mode": "legacy",
         "enabled": enabled,
         "running": running,
         "jobScheduled": job is not None,
         "nextRunAt": None,
         "intervalMinutes": None,
     }
-
     if job and job.next_run_time:
         result["nextRunAt"] = job.next_run_time.astimezone(timezone.utc).isoformat()
         result["intervalMinutes"] = int(job.trigger.interval.total_seconds() / 60)
-
     return result
 
 
@@ -71,13 +101,55 @@ async def run_cron(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
 
 @router.post("/apply")
 async def apply_scheduler(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
-    """Start, stop, or reconfigure the scheduler based on current settings."""
+    """Start, stop, or reconfigure scheduler jobs based on current settings."""
     runtime = await get_settings(db)
+    queues = runtime.get("queues", [])
+    sched = _get_scheduler()
+
+    if queues:
+        expected_ids = {
+            f"queue-sync-{q['queueType'].replace('_', '-')}"
+            for q in queues
+            if q.get("enableScheduler")
+        }
+
+        # Remove stale queue jobs
+        for job in sched.get_jobs():
+            if job.id.startswith("queue-sync-") and job.id not in expected_ids:
+                job.remove()
+
+        # Add/update queue jobs
+        any_enabled = False
+        for q in queues:
+            qt = q["queueType"]
+            job_id = f"queue-sync-{qt.replace('_', '-')}"
+            if q.get("enableScheduler"):
+                if not sched.running:
+                    sched.start()
+                sched.add_job(
+                    _get_queue_sync_job(),
+                    trigger="interval",
+                    minutes=q.get("pollIntervalMinutes", 5),
+                    id=job_id,
+                    args=[qt],
+                    replace_existing=True,
+                )
+                any_enabled = True
+            else:
+                existing_job = sched.get_job(job_id)
+                if existing_job:
+                    existing_job.remove()
+
+        if not any_enabled and sched.running and not sched.get_jobs():
+            sched.shutdown(wait=False)
+
+        log_json("info", "scheduler", "apply", "Per-queue scheduler reconfigured")
+        return {"running": sched.running, "mode": "per_queue", "message": "Per-queue schedulers applied"}
+
+    # Legacy fallback
     enabled = runtime.get("enableScheduler", False) or env_settings.ENABLE_INTERNAL_SCHEDULER
     jira_settings = runtime.get("jira", {})
     poll_minutes = jira_settings.get("pollIntervalMinutes") or env_settings.JIRA_POLL_INTERVAL_MINUTES
-
-    sched = _get_scheduler()
 
     if not enabled:
         if sched.running:
@@ -100,11 +172,11 @@ async def apply_scheduler(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
 
     job = sched.get_job("jira-sync")
     next_run = job.next_run_time.astimezone(timezone.utc).isoformat() if job and job.next_run_time else None
-
-    log_json("info", "scheduler", "apply", "Scheduler reconfigured", intervalMinutes=poll_minutes)
+    log_json("info", "scheduler", "apply", "Legacy scheduler reconfigured", intervalMinutes=poll_minutes)
 
     return {
         "running": True,
+        "mode": "legacy",
         "intervalMinutes": poll_minutes,
         "nextRunAt": next_run,
         "message": f"Scheduler running every {poll_minutes} min",

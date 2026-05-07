@@ -35,6 +35,8 @@ export interface TriageResults {
   verdictSummary?: string;
 }
 
+export type QueueType = "soc_triage" | "threat_intel" | "threat_hunt" | "detection_eng";
+
 export interface Incident {
   _id: string;
   jiraKey: string;
@@ -48,6 +50,7 @@ export interface Incident {
   assignee: string | null;
   description: string;
   mxdrModule: string | null;
+  queueType?: QueueType;
   triageStatus: IncidentStatus;
   triageStartedAt?: string;
   triageCompletedAt?: string;

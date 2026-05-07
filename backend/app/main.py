@@ -15,9 +15,10 @@ from app.core.errors import AppError
 from app.core.logger import log_json
 from app.db.mongo import close_mongo, connect_mongo, get_db
 from app.routers import activity, cron, health, incidents, jira, kindo, settings as settings_router
+from app.routers import queues as queues_router
 from app.services.settings_service import get_settings as get_runtime_settings
-from app.services.sync_service import run_jira_sync
-from app.services.triage_orchestrator import queue_triage
+from app.services.sync_service import run_jira_sync, run_queue_sync
+from app.services.triage_orchestrator import queue_triage, queue_triage_with_agent
 
 scheduler = AsyncIOScheduler()
 
@@ -34,18 +35,31 @@ async def ensure_core_collections() -> None:
     await db.incidents.create_index([("jiraKey", ASCENDING)], unique=True)
     await db.incidents.create_index([("triageStatus", ASCENDING)])
     await db.incidents.create_index([("priorityRank", ASCENDING), ("createdAt", ASCENDING)])
+    await db.incidents.create_index([("queueType", ASCENDING)])
     await db.agents.create_index([("kindoAgentId", ASCENDING)], unique=True)
     await db.triage_runs.create_index([("kindoRunId", ASCENDING)], unique=True)
     await db.activity_feed.create_index([("timestamp", ASCENDING)])
 
 
 async def scheduled_sync_job() -> None:
+    """Legacy fallback job used when no queues array is configured."""
     db = get_db()
     summary = await run_jira_sync(db)
     runtime = await get_runtime_settings(db)
 
     if runtime.get("autoTriageEnabled") and summary.get("newIncidentIds"):
         await queue_triage(db, list(summary["newIncidentIds"]))
+
+
+async def scheduled_queue_sync_job(queue_type: str) -> None:
+    db = get_db()
+    runtime = await get_runtime_settings(db)
+    queue_cfg = next((q for q in runtime.get("queues", []) if q["queueType"] == queue_type), None)
+    if not queue_cfg:
+        return
+    summary = await run_queue_sync(db, queue_type, queue_cfg)
+    if queue_cfg.get("autoTriageEnabled") and summary.get("newIncidentIds"):
+        await queue_triage_with_agent(db, list(summary["newIncidentIds"]), queue_cfg.get("agentId"))
 
 
 @asynccontextmanager
@@ -59,26 +73,42 @@ async def lifespan(_: FastAPI):
     log_json("info", "api", "startup", "MongoDB connected")
 
     runtime = await get_runtime_settings(get_db())
-    enable_scheduler = runtime.get("enableScheduler", False) or settings.ENABLE_INTERNAL_SCHEDULER
-    jira_settings = runtime.get("jira", {})
-    poll_minutes = jira_settings.get("pollIntervalMinutes") or settings.JIRA_POLL_INTERVAL_MINUTES
+    queues = runtime.get("queues", [])
 
-    if enable_scheduler:
-        scheduler.add_job(
-            scheduled_sync_job,
-            trigger="interval",
-            minutes=poll_minutes,
-            id="jira-sync",
-            replace_existing=True,
-        )
-        scheduler.start()
-        log_json(
-            "info",
-            "scheduler",
-            "start",
-            "Internal scheduler started",
-            intervalMinutes=poll_minutes,
-        )
+    if queues:
+        # Per-queue scheduler jobs
+        any_enabled = False
+        for queue_cfg in queues:
+            if not queue_cfg.get("enableScheduler"):
+                continue
+            qt = queue_cfg["queueType"]
+            scheduler.add_job(
+                scheduled_queue_sync_job,
+                trigger="interval",
+                minutes=queue_cfg.get("pollIntervalMinutes", 5),
+                id=f"queue-sync-{qt.replace('_', '-')}",
+                args=[qt],
+                replace_existing=True,
+            )
+            any_enabled = True
+        if any_enabled:
+            scheduler.start()
+            log_json("info", "scheduler", "start", "Per-queue schedulers started", queueCount=len(queues))
+    else:
+        # Migration fallback: use legacy flat settings
+        enable_scheduler = runtime.get("enableScheduler", False) or settings.ENABLE_INTERNAL_SCHEDULER
+        jira_settings = runtime.get("jira", {})
+        poll_minutes = jira_settings.get("pollIntervalMinutes") or settings.JIRA_POLL_INTERVAL_MINUTES
+        if enable_scheduler:
+            scheduler.add_job(
+                scheduled_sync_job,
+                trigger="interval",
+                minutes=poll_minutes,
+                id="jira-sync",
+                replace_existing=True,
+            )
+            scheduler.start()
+            log_json("info", "scheduler", "start", "Legacy scheduler started", intervalMinutes=poll_minutes)
 
     yield
 
@@ -132,6 +162,7 @@ app.include_router(settings_router.router)
 app.include_router(cron.router)
 app.include_router(activity.router)
 app.include_router(jira.router)
+app.include_router(queues_router.router, prefix="/api/queues")
 
 
 @app.get("/")

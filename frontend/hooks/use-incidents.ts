@@ -27,13 +27,38 @@ export function useIncident(id: string, config?: SWRConfiguration<Incident>) {
   return useSWR<Incident>(id ? `/api/incidents/${id}` : null, fetcher, config);
 }
 
-export function useForTriageCount() {
+export function useForTriageCount(queueType?: string) {
+  const params = new URLSearchParams({ page: "1", limit: "1", triageStatus: "For Triage" });
+  if (queueType) params.set("queueType", queueType);
   const { data } = useSWR<IncidentListResponse>(
-    "/api/incidents?page=1&limit=1&triageStatus=For+Triage",
+    `/api/incidents?${params.toString()}`,
     fetcher,
     { refreshInterval: 30000 }
   );
   return data?.pagination?.total ?? 0;
+}
+
+export function useQueueStats(queueType: string) {
+  const makeParams = (status: string) => {
+    const p = new URLSearchParams({ page: "1", limit: "1", queueType, triageStatus: status });
+    return `/api/incidents?${p.toString()}`;
+  };
+
+  const { data: forTriage } = useSWR<IncidentListResponse>(makeParams("For Triage"), fetcher, { refreshInterval: 15000 });
+  const { data: inProgress } = useSWR<IncidentListResponse>(makeParams("Triage In Progress"), fetcher, { refreshInterval: 10000 });
+  const { data: complete } = useSWR<IncidentListResponse>(makeParams("Triage Complete"), fetcher, { refreshInterval: 30000 });
+  const { data: all } = useSWR<IncidentListResponse>(
+    `/api/incidents?${new URLSearchParams({ page: "1", limit: "1", queueType }).toString()}`,
+    fetcher,
+    { refreshInterval: 30000 }
+  );
+
+  return {
+    forTriage: forTriage?.pagination?.total ?? 0,
+    inProgress: inProgress?.pagination?.total ?? 0,
+    complete: complete?.pagination?.total ?? 0,
+    total: all?.pagination?.total ?? 0,
+  };
 }
 
 export async function syncIncidents() {

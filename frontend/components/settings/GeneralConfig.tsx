@@ -6,41 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api-client";
-import { useAppSettings, useSchedulerStatus } from "@/hooks/use-settings";
-
-function SchedulerIndicator() {
-  const { data } = useSchedulerStatus();
-  if (!data) return null;
-
-  const nextRun = data.nextRunAt ? new Date(data.nextRunAt) : null;
-  const now = new Date();
-  const secsUntil = nextRun ? Math.max(0, Math.round((nextRun.getTime() - now.getTime()) / 1000)) : null;
-
-  let countdown = "";
-  if (secsUntil !== null) {
-    const mins = Math.floor(secsUntil / 60);
-    const secs = secsUntil % 60;
-    countdown = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-  }
-
-  return (
-    <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-      <span className={`inline-block h-2 w-2 rounded-full ${data.running && data.jobScheduled ? "bg-green-500" : "bg-muted-foreground/40"}`} />
-      {data.running && data.jobScheduled ? (
-        <span>
-          Scheduler active — every {data.intervalMinutes} min
-          {countdown && <span className="text-muted-foreground"> — next run in {countdown}</span>}
-        </span>
-      ) : (
-        <span className="text-muted-foreground">Scheduler inactive</span>
-      )}
-    </div>
-  );
-}
+import { useAppSettings } from "@/hooks/use-settings";
 
 export function GeneralConfig() {
   const { data, mutate } = useAppSettings();
-  const { mutate: refreshScheduler } = useSchedulerStatus();
   const [status, setStatus] = useState("");
 
   if (!data) return null;
@@ -52,15 +21,10 @@ export function GeneralConfig() {
     const payload = {
       ...data,
       llmProvider: String(formData.get("llmProvider")) as "openai" | "anthropic" | "gemini",
-      enableScheduler: formData.get("enableScheduler") === "on",
-      autoTriageEnabled: formData.get("autoTriageEnabled") === "on",
-      autoPostToJira: formData.get("autoPostToJira") === "on",
-      logLevel: String(formData.get("logLevel")) as "debug" | "info" | "warning" | "error"
+      logLevel: String(formData.get("logLevel")) as "debug" | "info" | "warning" | "error",
     };
-
     await apiClient.put("/api/settings", payload);
     await mutate();
-    await refreshScheduler();
     setStatus("General settings saved.");
   }
 
@@ -69,11 +33,10 @@ export function GeneralConfig() {
       <CardHeader>
         <CardTitle>General</CardTitle>
         <CardDescription>
-          Control global runtime behavior for triage, logging, and model selection.
+          Global runtime settings. Scheduler and automation are configured per queue in each Work Queue's settings tab.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="mb-3 text-xs text-muted-foreground">Fields marked with <span className="font-semibold">*</span> are required.</p>
         <form onSubmit={saveSettings} className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="llmProvider">LLM Provider *</Label>
@@ -109,30 +72,6 @@ export function GeneralConfig() {
             </select>
             <p className="text-xs text-muted-foreground">
               Set API logging verbosity. Use <code>info</code> for normal operations.
-            </p>
-          </div>
-
-          <div className="space-y-3 md:col-span-2 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Automation Pipeline</p>
-              <SchedulerIndicator />
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              <Label htmlFor="enableScheduler" className="inline-flex items-center gap-2 font-normal">
-                <input id="enableScheduler" name="enableScheduler" type="checkbox" defaultChecked={data.enableScheduler} />
-                Enable scheduler
-              </Label>
-              <Label htmlFor="autoTriageEnabled" className="inline-flex items-center gap-2 font-normal">
-                <input id="autoTriageEnabled" name="autoTriageEnabled" type="checkbox" defaultChecked={data.autoTriageEnabled} />
-                Auto-triage new incidents
-              </Label>
-              <Label htmlFor="autoPostToJira" className="inline-flex items-center gap-2 font-normal">
-                <input id="autoPostToJira" name="autoPostToJira" type="checkbox" defaultChecked={data.autoPostToJira} />
-                Auto-post results to Jira
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              When enabled, the scheduler syncs Jira using the poll interval configured in Jira Settings. Auto-triage sends new incidents to the Kindo agent. Auto-post writes triage results back as Jira comments.
             </p>
           </div>
 

@@ -6,6 +6,16 @@ export interface JiraSettings {
   pollIntervalMinutes: number;
 }
 
+export interface QueueSettings {
+  queueType: "soc_triage" | "threat_intel" | "threat_hunt" | "detection_eng";
+  jql: string;
+  pollIntervalMinutes: number;
+  enableScheduler: boolean;
+  autoTriageEnabled: boolean;
+  autoPostToJira: boolean;
+  agentId: string | null;
+}
+
 export interface KindoSettings {
   tenantUrl: string;
   inferenceUrl: string;
@@ -19,12 +29,14 @@ export interface LlmSettings {
 export interface AppSettings {
   _id?: string;
   llmProvider: "openai" | "anthropic" | "gemini";
+  // Legacy flat fields — kept for backward compat
   enableScheduler: boolean;
   autoTriageEnabled: boolean;
   autoPostToJira: boolean;
   logLevel: "debug" | "info" | "warning" | "error";
   pollIntervalMinutes: number;
   selectedTriageAgentId?: string;
+  queues: QueueSettings[];
   jira: JiraSettings;
   kindo: KindoSettings;
   updatedAt: string;
