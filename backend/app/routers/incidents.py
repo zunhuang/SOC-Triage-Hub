@@ -57,7 +57,11 @@ async def list_incidents(
     if priority:
         mongo_filter["priority"] = priority
     if queueType:
-        mongo_filter["queueType"] = queueType
+        if queueType == "soc_triage":
+            # Legacy incidents pre-dating multi-queue have no queueType field — treat them as SOC triage
+            mongo_filter["$or"] = [{"queueType": "soc_triage"}, {"queueType": {"$exists": False}}]
+        else:
+            mongo_filter["queueType"] = queueType
     if triageStatus:
         statuses = status_filter_values(triageStatus)
         if len(statuses) == 1:

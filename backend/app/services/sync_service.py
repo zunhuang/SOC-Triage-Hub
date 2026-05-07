@@ -87,6 +87,7 @@ async def run_jira_sync(db: AsyncIOMotorDatabase) -> dict[str, int | list[str]]:
 
     for raw in issues:
         mapped = map_jira_issue(raw)
+        mapped["queueType"] = "soc_triage"
         existing = await db.incidents.find_one({"jiraKey": mapped["jiraKey"]})
 
         if existing is None:
