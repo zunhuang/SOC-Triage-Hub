@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { DEMO_SESSION_KEY } from "@/lib/demo-auth";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 import { useAppSettings } from "@/hooks/use-settings";
 
 type PipelineState = "active" | "partial" | "inactive";
@@ -19,7 +19,6 @@ function usePipelineState(): PipelineState {
     if (onCount > 0) return "partial";
     return "inactive";
   }
-  // Legacy fallback
   const flags = [settings.enableScheduler, settings.autoTriageEnabled, settings.autoPostToJira];
   const onCount = flags.filter(Boolean).length;
   if (onCount === 3) return "active";
@@ -47,14 +46,17 @@ const stateConfig: Record<PipelineState, { label: string; dotClass: string; pill
 
 export function AppHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   const pipelineState = usePipelineState();
   const cfg = stateConfig[pipelineState];
+  const { user, logout } = useAuth();
 
-  function logout() {
-    localStorage.removeItem(DEMO_SESSION_KEY);
-    router.push("/login");
-  }
+  const displayName = user
+    ? (user.first_name ? `${user.first_name}${user.last_name ? " " + user.last_name : ""}` : user.email)
+    : "Analyst";
+
+  const initials = user?.first_name
+    ? `${user.first_name[0]}${user.last_name?.[0] ?? ""}`.toUpperCase()
+    : "DA";
 
   return (
     <header className="sticky top-0 z-50">
@@ -77,11 +79,11 @@ export function AppHeader() {
               {cfg.label}
             </div>
 
-            <div className="flex cursor-pointer items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.06] py-1 pl-1 pr-2.5 text-[13px] transition-colors hover:bg-white/10">
+            <div className="flex cursor-default items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.06] py-1 pl-1 pr-2.5 text-[13px]">
               <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-gradient-to-br from-[#86BC25] to-[#86EB22] text-[11px] font-bold text-black">
-                DA
+                {initials}
               </div>
-              <span>Digital Analyst</span>
+              <span>{displayName}</span>
             </div>
 
             <button

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Open_Sans, JetBrains_Mono } from "next/font/google";
+import { AuthProvider } from "@/contexts/auth-context";
 import { SessionGate } from "@/components/auth/SessionGate";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -29,18 +30,20 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${openSans.variable} ${jetBrainsMono.variable}`}>
       <body className="animate-fade-in">
-        <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/35 flex flex-col">
-          <AppHeader />
-          <div className="flex flex-1">
-            <AppSidebar />
-            <main className="min-w-0 flex-1 px-4 py-6 md:px-6">
-              <div className="mx-auto w-full max-w-[1400px]">
-                <SessionGate>{children}</SessionGate>
-              </div>
-            </main>
+        <AuthProvider>
+          <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/35 flex flex-col">
+            <AppHeader />
+            <div className="flex flex-1">
+              <AppSidebar />
+              <main className="min-w-0 flex-1 px-4 py-6 md:px-6">
+                <div className="mx-auto w-full max-w-[1400px]">
+                  <SessionGate>{children}</SessionGate>
+                </div>
+              </main>
+            </div>
+            <AppFooter />
           </div>
-          <AppFooter />
-        </div>
+        </AuthProvider>
       </body>
     </html>
   );

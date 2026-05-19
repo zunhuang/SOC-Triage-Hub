@@ -4,12 +4,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.auth import get_current_active_user
 from app.core.errors import AppError
 from app.db.mongo import get_db
 from app.services.settings_service import get_settings
 from app.services.sync_service import run_queue_sync
 
-router = APIRouter(tags=["queues"])
+router = APIRouter(tags=["queues"], dependencies=[Depends(get_current_active_user)])
 
 VALID_QUEUE_TYPES = {"soc_triage", "threat_intel", "threat_hunt", "detection_eng"}
 

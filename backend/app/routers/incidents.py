@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from pydantic import BaseModel
 
+from app.core.auth import get_current_active_user
 from app.core.errors import AppError, NotFoundError
 from app.db.mongo import get_db
 from app.schemas.incidents import IncidentPatchRequest
@@ -19,7 +20,7 @@ from app.services.sync_service import run_jira_sync
 from app.utils.markdown_to_jira import md_to_jira
 from app.utils.serialization import serialize
 
-router = APIRouter(prefix="/api/incidents", tags=["incidents"])
+router = APIRouter(prefix="/api/incidents", tags=["incidents"], dependencies=[Depends(get_current_active_user)])
 
 
 def _to_object_id(value: str) -> ObjectId:

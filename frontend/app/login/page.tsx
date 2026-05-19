@@ -7,12 +7,11 @@ import { LockKeyhole, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  DEMO_PASSWORD,
-  DEMO_SESSION_KEY,
-  DEMO_SESSION_VALUE,
-  DEMO_USERNAME
-} from "@/lib/demo-auth";
+import { Separator } from "@/components/ui/separator";
+import { apiClient, ApiError } from "@/lib/api-client";
+import { useAuth } from "@/contexts/auth-context";
+
+const AZURE_ENABLED = process.env.NEXT_PUBLIC_AZURE_ENABLED === "true";
 
 export default function LoginPage() {
   return (
@@ -25,30 +24,42 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/";
+  const nextPath = searchParams.get("next") || "/dashboard";
+  const { user, isLoading, refetch } = useAuth();
 
-  const [username, setUsername] = useState(DEMO_USERNAME);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const existing = localStorage.getItem(DEMO_SESSION_KEY);
-    if (existing === DEMO_SESSION_VALUE) {
+    if (!isLoading && user) {
       router.replace(nextPath);
     }
-  }, [nextPath, router]);
+  }, [isLoading, user, nextPath, router]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-
-    if (username === DEMO_USERNAME && password === DEMO_PASSWORD) {
-      localStorage.setItem(DEMO_SESSION_KEY, DEMO_SESSION_VALUE);
+    setSubmitting(true);
+    try {
+      await apiClient.post("/api/auth/login", { email, password });
+      await refetch();
       router.replace(nextPath);
-      return;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Login failed. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
     }
+  }
 
-    setError("Invalid credentials. Use the demo values shown below.");
+  function handleAzureLogin() {
+    const next = encodeURIComponent(nextPath);
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/auth/azure/login?next=${next}`;
   }
 
   return (
@@ -71,37 +82,75 @@ function LoginForm() {
             <h2 className="text-xl font-semibold">Sign In</h2>
             <p className="text-sm text-muted-foreground">Enter your credentials to access the platform.</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {AZURE_ENABLED && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={handleAzureLogin}
+                >
+                  <MicrosoftIcon />
+                  Sign in with Microsoft
+                </Button>
+                <div className="flex items-center gap-3">
+                  <Separator className="flex-1" />
+                  <span className="text-xs text-muted-foreground">or</span>
+                  <Separator className="flex-1" />
+                </div>
+              </>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <label className="block text-sm font-medium">
-                Username
+                Email
                 <div className="relative mt-1.5">
                   <UserRound className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                  <Input value={username} onChange={(e) => setUsername(e.target.value)} className="pl-9" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-9"
+                    placeholder="you@deloitte.com"
+                    required
+                    autoComplete="email"
+                  />
                 </div>
               </label>
               <label className="block text-sm font-medium">
                 Password
                 <div className="relative mt-1.5">
                   <LockKeyhole className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9" />
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-9"
+                    required
+                    autoComplete="current-password"
+                  />
                 </div>
               </label>
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              <Button type="submit" className="w-full">Sign In</Button>
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? "Signing in…" : "Sign In"}
+              </Button>
             </form>
-          </CardContent>
-        </Card>
-
-        <Card className="border-dashed bg-[#F1F6E4]/50">
-          <CardContent className="py-3 text-center text-sm">
-            <span className="text-muted-foreground">Demo: </span>
-            <span className="font-medium">{DEMO_USERNAME}</span>
-            <span className="text-muted-foreground"> / </span>
-            <span className="font-medium">{DEMO_PASSWORD}</span>
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+function MicrosoftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+    </svg>
   );
 }

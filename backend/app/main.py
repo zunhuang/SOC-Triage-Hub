@@ -16,6 +16,8 @@ from app.core.logger import log_json
 from app.db.mongo import close_mongo, connect_mongo, get_db
 from app.routers import activity, cron, health, incidents, jira, kindo, settings as settings_router
 from app.routers import queues as queues_router
+from app.routers import auth as auth_router
+from app.routers import users as users_router
 from app.services.settings_service import get_settings as get_runtime_settings
 from app.services.sync_service import run_jira_sync, run_queue_sync
 from app.services.triage_orchestrator import queue_triage, queue_triage_with_agent
@@ -39,6 +41,38 @@ async def ensure_core_collections() -> None:
     await db.agents.create_index([("kindoAgentId", ASCENDING)], unique=True)
     await db.triage_runs.create_index([("kindoRunId", ASCENDING)], unique=True)
     await db.activity_feed.create_index([("timestamp", ASCENDING)])
+
+    # Users collection
+    if "users" not in existing:
+        await db.create_collection("users")
+    await db.users.create_index([("email", ASCENDING)], unique=True)
+    await db.users.create_index([("azure_oid", ASCENDING)], unique=True, sparse=True)
+
+
+async def _seed_admin() -> None:
+    """Create the default admin account on first startup if no users exist."""
+    if not settings.ADMIN_PASSWORD:
+        return
+    db = get_db()
+    if await db.users.count_documents({}) > 0:
+        return
+    from datetime import timezone
+    from app.utils.auth import get_password_hash
+    now = datetime.now(timezone.utc)
+    await db.users.insert_one({
+        "email": settings.ADMIN_EMAIL.lower(),
+        "password_hash": get_password_hash(settings.ADMIN_PASSWORD),
+        "first_name": "Admin",
+        "last_name": None,
+        "role": "admin",
+        "auth_provider": "local",
+        "azure_oid": None,
+        "is_active": True,
+        "created_at": now,
+        "updated_at": now,
+        "last_login": None,
+    })
+    log_json("info", "api", "startup", f"Created default admin: {settings.ADMIN_EMAIL}")
 
 
 async def scheduled_sync_job() -> None:
@@ -70,6 +104,7 @@ async def lifespan(_: FastAPI):
         log_json("error", "api", "startup", f"MongoDB connection failed: {exc}")
         raise SystemExit(f"Cannot start: MongoDB connection failed — {exc}") from exc
     await ensure_core_collections()
+    await _seed_admin()
     log_json("info", "api", "startup", "MongoDB connected")
 
     runtime = await get_runtime_settings(get_db())
@@ -155,6 +190,8 @@ async def generic_error_handler(_: Request, error: Exception) -> JSONResponse:
     )
 
 
+app.include_router(auth_router.router)
+app.include_router(users_router.router)
 app.include_router(health.router)
 app.include_router(incidents.router)
 app.include_router(kindo.router)

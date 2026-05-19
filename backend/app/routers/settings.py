@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.auth import get_current_active_user, require_admin
 from app.db.mongo import get_db
 from app.routers.cron import apply_scheduler
 from app.schemas.settings import AppSettingsPayload
@@ -10,13 +11,13 @@ from app.utils.serialization import serialize
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(get_current_active_user)])
 async def read_settings(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     current = await get_settings(db)
     return serialize(current)
 
 
-@router.put("")
+@router.put("", dependencies=[Depends(require_admin)])
 async def update_settings(payload: AppSettingsPayload, db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     updated = await upsert_settings(db, payload.model_dump())
     await apply_scheduler(db)

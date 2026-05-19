@@ -17,12 +17,22 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {})
     },
     cache: "no-store"
   });
+
+  if (response.status === 401) {
+    // Avoid redirect loops on the login page itself
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+      const next = encodeURIComponent(window.location.pathname);
+      window.location.href = `/login?next=${next}`;
+    }
+    throw new ApiError("Not authenticated", 401, "not_authenticated");
+  }
 
   if (!response.ok) {
     let payload: { error?: string; code?: string; details?: unknown } | undefined;

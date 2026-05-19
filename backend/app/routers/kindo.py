@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.auth import get_current_active_user
 from app.core.errors import AppError
 from app.db.mongo import get_db
 from app.schemas.kindo import AgentPatchRequest, TriageRequest
@@ -15,7 +16,7 @@ from app.services.settings_service import get_settings
 from app.services.triage_orchestrator import queue_triage_with_agent
 from app.utils.serialization import serialize
 
-router = APIRouter(prefix="/api/kindo", tags=["kindo"])
+router = APIRouter(prefix="/api/kindo", tags=["kindo"], dependencies=[Depends(get_current_active_user)])
 
 
 def _extract_first_value(payload: Any, keys: tuple[str, ...], depth: int = 0) -> Any:

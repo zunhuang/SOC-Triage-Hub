@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.auth import require_admin
 from app.core.config import settings as env_settings
 from app.core.logger import log_json
 from app.db.mongo import get_db
@@ -12,7 +13,7 @@ from app.services.settings_service import get_settings
 from app.services.sync_service import run_jira_sync
 from app.services.triage_orchestrator import queue_triage
 
-router = APIRouter(prefix="/api/cron", tags=["cron"])
+router = APIRouter(prefix="/api/cron", tags=["cron"], dependencies=[Depends(require_admin)])
 
 
 def _get_scheduler():

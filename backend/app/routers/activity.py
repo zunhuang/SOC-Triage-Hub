@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.auth import get_current_active_user
 from app.db.mongo import get_db
 from app.services.activity_service import list_recent_activity
 from app.utils.serialization import serialize
 
-router = APIRouter(prefix="/api/activity", tags=["activity"])
+router = APIRouter(prefix="/api/activity", tags=["activity"], dependencies=[Depends(get_current_active_user)])
 
 
 @router.get("")

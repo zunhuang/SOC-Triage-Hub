@@ -34,6 +34,25 @@ class Settings(BaseSettings):
     AUTO_TRIAGE_ENABLED: bool = False
     ENABLE_INTERNAL_SCHEDULER: bool = False
 
+    # Auth
+    SECRET_KEY: str = Field(..., description="JWT signing secret — must be set in .env")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
+    ALGORITHM: str = "HS256"
+
+    # Seed admin (created on first startup if users collection is empty)
+    ADMIN_EMAIL: str = Field(default="admin@deloitte.com")
+    ADMIN_PASSWORD: str = Field(default="")
+
+    # Azure AD (Entra ID) SSO
+    AZURE_CLIENT_ID: str = Field(default="")
+    AZURE_CLIENT_SECRET: str = Field(default="")
+    AZURE_TENANT_ID: str = Field(default="")
+
+    @property
+    def AZURE_ENABLED(self) -> bool:
+        return bool(self.AZURE_CLIENT_ID and self.AZURE_CLIENT_SECRET and self.AZURE_TENANT_ID)
+
     @field_validator("LOG_LEVEL")
     @classmethod
     def validate_log_level(cls, value: str) -> str:

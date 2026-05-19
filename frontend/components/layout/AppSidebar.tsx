@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, Settings, AlertTriangle, Shield, Search, Code2 } from "lucide-react";
+import { LayoutDashboard, Settings, AlertTriangle, Shield, Search, Code2, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useForTriageCount } from "@/hooks/use-incidents";
+import { useAuth } from "@/contexts/auth-context";
 
 const QUEUE_NAV_ITEMS = [
   { href: "/soc-triage",    label: "SOC Triage",          icon: AlertTriangle, queueType: "soc_triage",    color: "#86BC25" },
@@ -40,6 +41,7 @@ function QueueNavItem({ item, isActive }: { item: typeof QUEUE_NAV_ITEMS[0]; isA
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { isAdmin } = useAuth();
 
   if (pathname === "/login") {
     return null;
@@ -47,6 +49,7 @@ export function AppSidebar() {
 
   const isDashboard = pathname === "/" || pathname === "/dashboard";
   const isSettings = pathname === "/settings" || pathname.startsWith("/settings/");
+  const isUsers = pathname === "/settings/users";
 
   return (
     <aside className="app-sidebar flex w-60 shrink-0 flex-col bg-[#282728] text-white">
@@ -87,14 +90,27 @@ export function AppSidebar() {
         <Link
           href="/settings"
           className={`flex items-center gap-3 border-l-[3px] px-6 py-[11px] text-sm transition-all ${
-            isSettings
+            isSettings && !isUsers
               ? "border-[#86BC25] bg-[rgba(134,188,37,0.10)] font-semibold text-white"
               : "border-transparent text-[#C8C8C8] hover:bg-white/[0.04] hover:text-white"
           }`}
         >
-          <Settings className={`size-[18px] ${isSettings ? "text-[#86BC25]" : "text-[#8C8C8C]"}`} />
+          <Settings className={`size-[18px] ${isSettings && !isUsers ? "text-[#86BC25]" : "text-[#8C8C8C]"}`} />
           <span>Settings</span>
         </Link>
+        {isAdmin && (
+          <Link
+            href="/settings/users"
+            className={`flex items-center gap-3 border-l-[3px] px-6 py-[11px] text-sm transition-all ${
+              isUsers
+                ? "border-[#86BC25] bg-[rgba(134,188,37,0.10)] font-semibold text-white"
+                : "border-transparent text-[#C8C8C8] hover:bg-white/[0.04] hover:text-white"
+            }`}
+          >
+            <Users className={`size-[18px] ${isUsers ? "text-[#86BC25]" : "text-[#8C8C8C]"}`} />
+            <span>Users</span>
+          </Link>
+        )}
       </nav>
 
       <div className="mt-auto border-t border-white/[0.06] px-6 py-4 text-[11px] leading-relaxed text-[#6B6B6B]">
