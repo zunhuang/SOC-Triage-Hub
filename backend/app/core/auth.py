@@ -35,7 +35,9 @@ async def get_current_user(
     if not user:
         raise AppError("User not found", "user_not_found", status_code=401)
 
-    return serialize(user)
+    doc = serialize(user)
+    doc["id"] = doc.pop("_id")
+    return doc
 
 
 async def get_current_active_user(

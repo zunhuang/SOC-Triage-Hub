@@ -31,6 +31,13 @@ _AZURE_TOKEN_URL = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
 _GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me"
 
 
+def _serialize_user(user: dict) -> dict:
+    """Serialize a raw MongoDB user doc to a JSON-safe dict with 'id' key."""
+    doc = serialize(user)
+    doc["id"] = doc.pop("_id", doc.get("id"))
+    return doc
+
+
 def _build_user_response(user: dict) -> dict:
     return {
         "id": user["id"],
@@ -71,7 +78,7 @@ async def login(
     )
 
     log_json("info", "auth", "login", "Local login", email=body.email)
-    return _build_user_response(serialize(user))
+    return _build_user_response(_serialize_user(user))
 
 
 @router.post("/api/auth/logout")

@@ -18,6 +18,7 @@ router = APIRouter(tags=["users"])
 
 def _user_out(user: dict) -> dict:
     u = serialize(user)
+    u["id"] = u.pop("_id")
     u.pop("password_hash", None)
     return u
 
