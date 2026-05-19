@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { FileText } from "lucide-react";
 import { TriageStatusBadge } from "@/components/dashboard/TriageStatusBadge";
 import { deriveDetectionSource } from "@/lib/detection-source";
+import apiClient from "@/lib/api-client";
 import type { Incident } from "@/types/incident";
 
 const DESC_COLLAPSED_HEIGHT = 120;
@@ -75,8 +76,18 @@ function MetadataRow({
   );
 }
 
-export function IncidentDetail({ incident }: { incident: Incident }) {
+export function IncidentDetail({ incident, mutate }: { incident: Incident; mutate: () => void }) {
   const detectionSource = deriveDetectionSource(incident.summary);
+  const [assigneeEditing, setAssigneeEditing] = useState(false);
+  const [assigneeText, setAssigneeText] = useState("");
+
+  async function handleSaveAssignee() {
+    await apiClient.patch(`/api/incidents/${incident._id}`, {
+      assignee: assigneeText.trim() || null,
+    });
+    mutate();
+    setAssigneeEditing(false);
+  }
 
   return (
     <div className="overflow-hidden rounded-[10px] border border-[var(--dl-border)] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -124,10 +135,49 @@ export function IncidentDetail({ incident }: { incident: Incident }) {
         </MetadataRow>
 
         <MetadataRow label="Assignee">
-          {incident.assignee ? (
-            <span>{incident.assignee}</span>
+          {assigneeEditing ? (
+            <div className="flex items-center gap-2">
+              <input
+                value={assigneeText}
+                onChange={(e) => setAssigneeText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveAssignee();
+                  if (e.key === "Escape") setAssigneeEditing(false);
+                }}
+                autoFocus
+                placeholder="Analyst name…"
+                className="flex-1 rounded border border-[var(--dl-border)] bg-[#FAFAFA] px-2 py-0.5 text-[13px] outline-none focus:border-[var(--dl-border-strong)]"
+              />
+              <button
+                type="button"
+                onClick={handleSaveAssignee}
+                className="text-[11px] font-semibold text-[var(--dl-green-dark)] hover:underline"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssigneeEditing(false)}
+                className="text-[11px] text-[var(--dl-text-secondary)] hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
           ) : (
-            <span className="italic text-[#B0B0B0]">Unassigned</span>
+            <div className="group flex items-center gap-2">
+              {incident.assignee ? (
+                <span>{incident.assignee}</span>
+              ) : (
+                <span className="italic text-[#B0B0B0]">Unassigned</span>
+              )}
+              <button
+                type="button"
+                onClick={() => { setAssigneeEditing(true); setAssigneeText(incident.assignee ?? ""); }}
+                className="text-[11px] font-semibold text-[var(--dl-green-dark)] opacity-0 transition-opacity hover:underline group-hover:opacity-100"
+              >
+                Edit
+              </button>
+            </div>
           )}
         </MetadataRow>
 

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TriageHub 2.0 — Multi-Queue Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --dl-green:#86BC25;--dl-green-dark:#6FA01E;--dl-green-darker:#5A8217;
+    --dl-neon:#86EB22;--dl-blue:#00A3E0;--dl-blue-dark:#005587;
+    --dl-black:#000;--dl-dark:#282728;
+    --dl-border:#E6E6E6;--dl-border-strong:#D4D4D4;
+    --dl-bg:#F4F5F2;--dl-card:#fff;
+    --dl-text:#1A1A1A;--dl-sub:#6B6B6B;
+    --red:#DA291C;--red-bg:#FDEEEC;
+    --amber:#D97706;--amber-bg:#FEF4E6;
+    --green-bg:#F1F8E5;
+    --blue-bg:#E5F6FC;
+    --purple:#7C3AED;--purple-bg:#F5F0FF;--purple-dark:#5B21B6;
+    --orange:#EA580C;
+    --r:6px;--rl:10px;
+    --sh:0 1px 2px rgba(0,0,0,0.04);
+    --sidebar-w:240px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Open Sans',sans-serif;background:var(--dl-bg);color:var(--dl-text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+
+  /* TOPBAR */
+  .topbar{height:56px;background:var(--dl-black);color:#fff;display:flex;align-items:center;padding:0 24px;position:sticky;top:0;z-index:100;border-bottom:3px solid var(--dl-green);}
+  .logo{width:28px;height:28px;background:#fff;color:var(--dl-black);border-radius:4px;display:grid;place-items:center;font-weight:700;font-size:16px;position:relative;}
+  .logo::after{content:".";position:absolute;color:var(--dl-green);font-weight:700;right:4px;bottom:-2px;font-size:18px;}
+  .tbdiv{width:1px;height:22px;background:rgba(255,255,255,0.18);margin:0 6px;}
+  .spacer{flex:1;}
+  .sp{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(134,235,34,0.08);border:1px solid rgba(134,235,34,0.24);border-radius:999px;font-size:12px;color:#C9F08A;margin-right:16px;}
+  .spdot{width:7px;height:7px;border-radius:50%;background:var(--dl-neon);animation:pulse 2s ease-out infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(134,235,34,0.5);}70%{box-shadow:0 0 0 8px rgba(134,235,34,0);}100%{box-shadow:0 0 0 0 rgba(134,235,34,0);}}
+  .uchip{display:flex;align-items:center;gap:10px;padding:4px 10px 4px 4px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);font-size:13px;color:#fff;}
+  .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--dl-green),var(--dl-neon));display:grid;place-items:center;color:var(--dl-black);font-weight:700;font-size:11px;}
+  .logout{margin-left:12px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:var(--r);font-family:inherit;font-size:13px;cursor:pointer;}
+
+  /* LAYOUT */
+  .layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:calc(100vh - 59px);}
+
+  /* SIDEBAR */
+  .sidebar{background:var(--dl-dark);color:#fff;padding:20px 0;display:flex;flex-direction:column;position:sticky;top:59px;height:calc(100vh - 59px);}
+  .sl{font-size:10px;font-weight:700;letter-spacing:0.14em;color:#8C8C8C;text-transform:uppercase;padding:10px 24px 8px;}
+  .ssep{height:1px;background:rgba(255,255,255,0.06);margin:6px 0;}
+  .ni{display:flex;align-items:center;gap:12px;padding:11px 24px;color:#C8C8C8;cursor:pointer;font-size:13px;border-left:3px solid transparent;transition:all .15s;text-decoration:none;}
+  .ni:hover{color:#fff;background:rgba(255,255,255,0.04);}
+  .ni.active{color:#fff;background:rgba(134,188,37,0.10);border-left-color:var(--dl-green);font-weight:600;}
+  .ni.active .nic{color:var(--dl-green);}
+  .nic{flex-shrink:0;width:16px;height:16px;color:#8C8C8C;}
+  .nb{margin-left:auto;border-radius:999px;font-size:10px;font-weight:700;padding:2px 7px;color:#fff;}
+  .nb.green{background:var(--dl-green);color:var(--dl-black);}
+  .nb.orange{background:var(--orange);}
+  .nb.blue{background:var(--dl-blue);}
+  .nb.purple{background:var(--purple);}
+  .sfooter{margin-top:auto;padding:16px 24px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:#6B6B6B;line-height:1.6;}
+  .sfooter .env{display:inline-flex;align-items:center;gap:6px;color:var(--dl-neon);font-weight:600;margin-bottom:4px;font-size:11px;}
+  .env::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--dl-neon);display:inline-block;}
+
+  /* MAIN */
+  .main{padding:0;overflow:hidden;}
+
+  /* QUEUE TAB BAR */
+  .qtabbar{display:flex;align-items:center;border-bottom:1px solid var(--dl-border);background:#fff;padding:0 36px;gap:0;position:sticky;top:59px;z-index:50;box-shadow:var(--sh);}
+  .qtab{padding:16px 20px;font-size:13px;font-weight:600;color:var(--dl-sub);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:8px;}
+  .qtab:hover{color:var(--dl-text);}
+  .qtab.active{color:var(--dl-green-dark);border-bottom-color:var(--dl-green);}
+  .qtab svg{width:14px;height:14px;}
+
+  /* QUEUE HEADER STRIP */
+  .qstrip{padding:22px 36px 0;background:var(--dl-card);border-bottom:1px solid var(--dl-border);}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:0.16em;color:var(--dl-sub);text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:10px;}
+  .emdash{width:24px;height:2px;background:var(--dl-green);}
+  .ptitle{font-size:26px;font-weight:300;color:var(--dl-text);line-height:1.15;letter-spacing:-0.01em;padding-bottom:16px;}
+  .ptitle em{font-style:normal;color:var(--dl-green);font-weight:700;}
+  .pslogan{font-size:12px;color:#B0B0B0;font-style:italic;margin-top:2px;padding-bottom:16px;}
+
+  /* PAGE BODY */
+  .pbody{padding:24px 36px 48px;}
+
+  /* VIEW SWITCHER (top-level pages) */
+  .pageview{display:none;}
+  .pageview.active{display:block;}
+
+  /* INNER QUEUE TABS */
+  .tabcontent{display:none;}
+  .tabcontent.active{display:block;}
+
+  /* STAT CARDS ROW */
+  .statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .statcard{background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--rl);padding:18px 20px;box-shadow:var(--sh);}
+  .statcard .sv{font-size:32px;font-weight:300;line-height:1;color:var(--dl-text);}
+  .statcard .sl2{font-size:11px;color:var(--dl-sub);margin-top:4px;}
+  .statcard .sdiff{font-size:12px;margin-top:10px;font-weight:600;}
+
+  /* PANEL */
+  .panel{background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden;}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse;}
+  thead th{background:#FAFAFA;padding:11px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dl-sub);border-bottom:1px solid var(--dl-border);white-space:nowrap;}
+  thead th:first-child{width:40px;text-align:center;}
+  tbody tr{border-bottom:1px solid #F0F0F0;transition:background .1s;cursor:pointer;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:rgba(134,188,37,0.03);}
+  tbody td{padding:11px 14px;font-size:13px;vertical-align:middle;}
+  tbody td:first-child{text-align:center;}
+  .tkey{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--dl-sub);white-space:nowrap;}
+  .tsum{max-width:360px;}
+  .tsum-t{font-size:13px;color:var(--dl-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tsum-m{font-size:11px;color:var(--dl-sub);margin-top:2px;display:flex;align-items:center;gap:6px;}
+  .ttag{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.04em;background:#F0F0F0;color:var(--dl-sub);}
+
+  /* BADGES */
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge::before{content:"";width:5px;height:5px;border-radius:50%;}
+  .b-ftriage{background:#F4F5F2;color:#6B6B6B;border:1px solid #E6E6E6;}.b-ftriage::before{background:#B0B0B0;}
+  .b-prog{background:var(--blue-bg);color:var(--dl-blue-dark);border:1px solid rgba(0,163,224,0.25);}.b-prog::before{background:var(--dl-blue);}
+  .b-done{background:var(--green-bg);color:var(--dl-green-darker);border:1px solid rgba(134,188,37,0.25);}.b-done::before{background:var(--dl-green);}
+  .b-fail{background:var(--red-bg);color:#8B0F08;border:1px solid rgba(218,41,28,0.2);}.b-fail::before{background:var(--red);}
+
+  /* PILLS */
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
+  .p-high{background:var(--red-bg);color:#8B0F08;border:1px solid rgba(218,41,28,0.2);}
+  .p-med{background:var(--amber-bg);color:#8B5400;border:1px solid rgba(217,119,6,0.2);}
+  .p-low{background:var(--green-bg);color:var(--dl-green-darker);border:1px solid rgba(134,188,37,0.25);}
+  .pdot{width:5px;height:5px;border-radius:50%;}
+  .vchip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+  .v-tp{background:rgba(217,119,6,.10);color:#8B5400;}
+  .v-fp{background:rgba(218,41,28,.08);color:var(--red);}
+  .v-bn{background:rgba(134,188,37,.10);color:var(--dl-green-darker);}
+  .v-na{background:var(--blue-bg);color:var(--dl-blue-dark);}
+
+  /* FILTER BAR */
+  .fbar{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--rl);padding:14px 18px;margin-bottom:18px;box-shadow:var(--sh);}
+  .sw{position:relative;}
+  .sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#B0B0B0;}
+  .sw input{width:100%;height:36px;padding:0 12px 0 32px;border:1px solid var(--dl-border);border-radius:var(--r);font-family:inherit;font-size:13px;color:var(--dl-text);background:#fff;}
+  .sw input::placeholder{color:#B8B8B8;}
+  .fsel{height:36px;padding:0 28px 0 11px;border:1px solid var(--dl-border);border-radius:var(--r);font-family:inherit;font-size:13px;color:var(--dl-text);background:#fff url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236B6B6B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;appearance:none;cursor:pointer;}
+  .btnp{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;background:var(--dl-green);color:#fff;border:none;border-radius:var(--r);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+  .btnp:disabled{background:#E6E6E6;color:#999;cursor:not-allowed;}
+  .btns{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;background:#fff;color:var(--dl-text);border:1px solid var(--dl-border-strong);border-radius:var(--r);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+
+  /* PAGINATION */
+  .pag{display:flex;align-items:center;justify-content:space-between;background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--rl);padding:12px 20px;margin-top:14px;box-shadow:var(--sh);}
+  .pag span{font-size:13px;color:var(--dl-sub);}
+
+  /* SETTINGS CARD */
+  .qscard{background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden;}
+  .qsch{padding:18px 20px;border-bottom:1px solid var(--dl-border);display:flex;align-items:center;gap:12px;}
+  .qsicon{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;}
+  .qscb{padding:20px;display:flex;flex-direction:column;gap:16px;}
+  .fl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dl-sub);margin-bottom:6px;}
+  .finput{width:100%;padding:8px 12px;border:1px solid var(--dl-border);border-radius:var(--r);font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dl-text);background:#FAFAFA;}
+  .ftarea{width:100%;padding:8px 12px;border:1px solid var(--dl-border);border-radius:var(--r);font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dl-text);background:#FAFAFA;resize:vertical;min-height:60px;}
+  .fsel2{width:100%;padding:8px 32px 8px 12px;border:1px solid var(--dl-border);border-radius:var(--r);font-family:inherit;font-size:13px;color:var(--dl-text);background:#fff url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236B6B6B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;appearance:none;}
+  .trow{display:flex;align-items:center;justify-content:space-between;}
+  .tgl{position:relative;width:38px;height:22px;flex-shrink:0;}
+  .tgl input{opacity:0;width:0;height:0;}
+  .tslider{position:absolute;cursor:pointer;inset:0;background:#D4D4D4;border-radius:999px;transition:.2s;}
+  .tslider::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .tgl input:checked+.tslider{background:var(--dl-green);}
+  .tgl input:checked+.tslider::before{transform:translateX(16px);}
+  .qscf{padding:14px 20px;border-top:1px solid var(--dl-border);display:flex;align-items:center;justify-content:space-between;background:#FAFAFA;}
+  .savebtn{padding:7px 16px;background:var(--dl-green);color:#fff;border:none;border-radius:var(--r);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+
+  /* ACTIVITY FEED */
+  .afeed{display:flex;flex-direction:column;}
+  .aitem{display:flex;align-items:flex-start;gap:14px;padding:12px 20px;border-bottom:1px solid #F4F5F2;}
+  .aitem:last-child{border-bottom:none;}
+  .adot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+  .atxt{font-size:13px;color:var(--dl-text);}
+  .ameta{font-size:11px;color:var(--dl-sub);margin-top:2px;}
+
+  /* GLOBAL DASHBOARD QUEUE CARDS */
+  .qpulse{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .qpc{background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--rl);padding:18px 20px;box-shadow:var(--sh);cursor:pointer;transition:box-shadow .15s;}
+  .qpc:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+  .qpc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .qpc-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;}
+  .qpc-live{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dl-sub);}
+  .qpc-num{font-size:36px;font-weight:300;line-height:1;}
+  .qpc-sub{font-size:11px;color:var(--dl-sub);margin-top:3px;}
+  .qpc-div{height:1px;background:var(--dl-border);margin:14px 0;}
+  .qpc-row{display:flex;align-items:center;justify-content:space-between;}
+  .qpc-stat{font-size:12px;color:var(--dl-sub);}
+  .qpc-stat strong{font-size:15px;font-weight:700;}
+  .qpc-next{font-size:11px;color:#B0B0B0;margin-top:8px;}
+
+  input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--dl-green);}
+
+  /* SECTION HEADER */
+  .sechead{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dl-sub);margin:0 0 12px;display:flex;align-items:center;gap:10px;}
+  .sechead::after{content:"";flex:1;height:1px;background:linear-gradient(to right,var(--dl-border),transparent);}
+  .sechead a{margin-left:auto;font-size:12px;color:var(--dl-green-dark);font-weight:600;text-decoration:none;text-transform:none;letter-spacing:0;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">D</div>
+  <div class="tbdiv"></div>
+  <span style="font-weight:600;font-size:15px;color:#fff;">Detect &amp; Respond</span>
+  <div class="tbdiv"></div>
+  <span style="font-size:13px;color:rgba(255,255,255,0.7);">SOC Triage Hub</span>
+  <div class="spacer"></div>
+  <div class="sp"><div class="spdot"></div>System Operational</div>
+  <div class="uchip"><div class="av">ZH</div>Zun Huang</div>
+  <button class="logout">Sign out</button>
+</header>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div>
+    <div class="sl">Navigation</div>
+    <nav>
+      <a class="ni" href="#" onclick="showPage('dashboard');return false;">
+        <svg class="nic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+    </nav>
+  </div>
+  <div class="ssep"></div>
+  <div>
+    <div class="sl">Work Queues</div>
+    <nav>
+      <a class="ni" href="#" onclick="showPage('soc');return false;">
+        <svg class="nic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        SOC Triage
+        <span class="nb green">12</span>
+      </a>
+      <a class="ni" href="#" onclick="showPage('ti');return false;">
+        <svg class="nic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Threat Intelligence
+        <span class="nb orange">5</span>
+      </a>
+      <a class="ni" href="#" onclick="showPage('th');return false;">
+        <svg class="nic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Threat Hunt
+        <span class="nb blue">3</span>
+      </a>
+      <a class="ni" href="#" onclick="showPage('de');return false;">
+        <svg class="nic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Detection Eng
+        <span class="nb purple">7</span>
+      </a>
+    </nav>
+  </div>
+  <div class="ssep"></div>
+  <div>
+    <nav>
+      <a class="ni" href="#" onclick="showPage('settings');return false;">
+        <svg class="nic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+  </div>
+  <div class="sfooter">
+    <div class="env">PROD · us-east-1</div><br/>
+    Tenant: Deloitte MXDR<br/>Cyber Digital Analyst
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- =================== GLOBAL DASHBOARD =================== -->
+  <div class="pageview active" id="page-dashboard">
+    <div class="qstrip">
+      <div class="eyebrow"><span class="emdash"></span>Operations Center</div>
+      <div class="ptitle">Detect &amp; Respond <em>Dashboard</em></div>
+      <div class="pslogan">Triage at scale, eyes on where it matters</div>
+    </div>
+    <div class="pbody">
+
+      <!-- Queue Pulse -->
+      <div class="sechead">Queue Pulse</div>
+      <div class="qpulse" style="margin-bottom:28px;">
+        <div class="qpc" style="border-top:3px solid var(--dl-green);" onclick="showPage('soc')">
+          <div class="qpc-top"><span class="qpc-label" style="color:var(--dl-green-darker);">SOC Triage</span><span class="qpc-live"><span style="width:6px;height:6px;border-radius:50%;background:var(--dl-neon);display:inline-block;"></span>Live</span></div>
+          <div class="qpc-num">47</div><div class="qpc-sub">total incidents</div>
+          <div class="qpc-div"></div>
+          <div class="qpc-row"><span class="qpc-stat"><strong style="color:var(--red);">12</strong> for triage</span><span class="qpc-stat"><strong style="color:var(--dl-green);">23</strong> complete</span></div>
+          <div class="qpc-next">Next sync in <strong style="color:var(--dl-sub);">3 min</strong></div>
+        </div>
+        <div class="qpc" style="border-top:3px solid var(--orange);" onclick="showPage('ti')">
+          <div class="qpc-top"><span class="qpc-label" style="color:var(--orange);">Threat Intel</span><span class="qpc-live"><span style="width:6px;height:6px;border-radius:50%;background:var(--dl-neon);display:inline-block;"></span>Live</span></div>
+          <div class="qpc-num">18</div><div class="qpc-sub">active IOC sweeps</div>
+          <div class="qpc-div"></div>
+          <div class="qpc-row"><span class="qpc-stat"><strong style="color:var(--red);">5</strong> for analysis</span><span class="qpc-stat"><strong style="color:var(--dl-green);">11</strong> complete</span></div>
+          <div class="qpc-next">Next sync in <strong style="color:var(--dl-sub);">27 min</strong></div>
+        </div>
+        <div class="qpc" style="border-top:3px solid var(--dl-blue);" onclick="showPage('th')">
+          <div class="qpc-top"><span class="qpc-label" style="color:var(--dl-blue-dark);">Threat Hunt</span><span class="qpc-live"><span style="width:6px;height:6px;border-radius:50%;background:var(--dl-neon);display:inline-block;"></span>Live</span></div>
+          <div class="qpc-num">9</div><div class="qpc-sub">active hunts</div>
+          <div class="qpc-div"></div>
+          <div class="qpc-row"><span class="qpc-stat"><strong style="color:var(--red);">3</strong> for analysis</span><span class="qpc-stat"><strong style="color:var(--dl-green);">4</strong> complete</span></div>
+          <div class="qpc-next">Next sync in <strong style="color:var(--dl-sub);">58 min</strong></div>
+        </div>
+        <div class="qpc" style="border-top:3px solid var(--purple);" onclick="showPage('de')">
+          <div class="qpc-top"><span class="qpc-label" style="color:var(--purple-dark);">Detection Eng</span><span class="qpc-live"><span style="width:6px;height:6px;border-radius:50%;background:#D4D4D4;display:inline-block;"></span>Paused</span></div>
+          <div class="qpc-num">31</div><div class="qpc-sub">detection tasks</div>
+          <div class="qpc-div"></div>
+          <div class="qpc-row"><span class="qpc-stat"><strong style="color:var(--red);">7</strong> for review</span><span class="qpc-stat"><strong style="color:var(--dl-green);">14</strong> complete</span></div>
+          <div class="qpc-next" style="color:var(--amber);font-weight:600;">Scheduler off</div>
+        </div>
+      </div>
+
+      <!-- Cross-queue activity -->
+      <div class="sechead">Activity Feed — All Queues</div>
+      <div class="panel">
+        <div class="afeed">
+          <div class="aitem"><span class="adot" style="background:var(--dl-green);"></span><div><div class="atxt"><strong>MXDRTBA-3149</strong> triage complete — True Positive</div><div class="ameta">SOC Triage · kindo-agent · 2 min ago</div></div></div>
+          <div class="aitem"><span class="adot" style="background:var(--orange);"></span><div><div class="atxt"><strong>TI-0041</strong> malicious domain cluster confirmed — posted to Jira</div><div class="ameta">Threat Intel · kindo-agent · 4 min ago</div></div></div>
+          <div class="aitem"><span class="adot" style="background:var(--dl-blue);"></span><div><div class="atxt"><strong>TH-0019</strong> evidence found — LSASS credential harvesting on 3 hosts</div><div class="ameta">Threat Hunt · kindo-agent · 12 min ago</div></div></div>
+          <div class="aitem"><span class="adot" style="background:var(--dl-green);"></span><div><div class="atxt"><strong>MXDRTBA-3148</strong> triage complete — False Positive</div><div class="ameta">SOC Triage · kindo-agent · 15 min ago</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== SOC TRIAGE QUEUE =================== -->
+  <div class="pageview" id="page-soc">
+    <div class="qstrip">
+      <div class="eyebrow"><span class="emdash"></span>Work Queue</div>
+      <div class="ptitle">SOC <em>Triage</em></div>
+    </div>
+    <!-- Tab bar -->
+    <div class="qtabbar">
+      <button class="qtab active" onclick="switchTab(this,'soc','dash')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="qtab" onclick="switchTab(this,'soc','work')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Workbench
+      </button>
+      <button class="qtab" onclick="switchTab(this,'soc','cfg')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Queue Settings
+      </button>
+    </div>
+    <div class="pbody">
+      <!-- Dashboard tab -->
+      <div class="tabcontent active" id="soc-dash">
+        <div class="statrow">
+          <div class="statcard"><div class="sv">47</div><div class="sl2">Total Incidents</div><div class="sdiff" style="color:var(--dl-sub);">↑ 8 from yesterday</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--red);">12</div><div class="sl2">For Triage</div><div class="sdiff" style="color:var(--amber);">3 high priority</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--dl-green);">23</div><div class="sl2">Triage Complete</div><div class="sdiff" style="color:var(--dl-sub);">avg 4.2 min / ticket</div></div>
+          <div class="statcard"><div class="sv">18</div><div class="sl2">False Positives</div><div class="sdiff" style="color:var(--dl-sub);">78% FP rate this week</div></div>
+        </div>
+        <div class="sechead">Recent Activity</div>
+        <div class="panel">
+          <div class="afeed">
+            <div class="aitem"><span class="adot" style="background:var(--dl-green);"></span><div><div class="atxt"><strong>MXDRTBA-3149</strong> triage complete — True Positive — posted to Jira</div><div class="ameta">kindo-agent · 2 min ago</div></div></div>
+            <div class="aitem"><span class="adot" style="background:var(--dl-green);"></span><div><div class="atxt"><strong>MXDRTBA-3148</strong> triage complete — False Positive</div><div class="ameta">kindo-agent · 15 min ago</div></div></div>
+            <div class="aitem"><span class="adot" style="background:var(--dl-blue);"></span><div><div class="atxt"><strong>MXDRTBA-3147</strong> triage started</div><div class="ameta">kindo-agent · just now</div></div></div>
+            <div class="aitem"><span class="adot" style="background:#D4D4D4;"></span><div><div class="atxt">Jira sync complete — 3 new incidents imported</div><div class="ameta">system · 20 min ago</div></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Workbench tab -->
+      <div class="tabcontent" id="soc-work">
+        <div style="margin-bottom:6px;"><span class="eyebrow" style="margin-bottom:4px;"><span class="emdash"></span>Incident Management</span></div>
+        <h2 style="font-size:22px;font-weight:300;margin-bottom:2px;">Incidents <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Workbench</em></h2>
+        <p style="font-size:13px;color:var(--dl-sub);margin-bottom:18px;">47 total · 12 awaiting triage <span style="margin-left:10px;font-style:italic;color:#B8B8B8;">Triage at scale, eyes on where it matters</span></p>
+        <div class="fbar">
+          <div class="sw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search incidents..."/></div>
+          <select class="fsel"><option>All Priorities</option></select>
+          <select class="fsel"><option>All Statuses</option></select>
+          <button class="btnp" disabled>Trigger Triage (0)</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th><input type="checkbox"/></th><th>Key</th><th>Summary</th><th>Priority</th><th>Status</th><th>Verdict</th><th>Updated</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox"/></td><td class="tkey">MXDRTBA-3149</td><td class="tsum"><div class="tsum-t">Malware execution via PowerShell: Encoded command detected</div><div class="tsum-m"><span class="ttag">EDR</span>MXDR Test Bed A</div></td><td><span class="pill p-high"><span class="pdot" style="background:var(--red);"></span>Highest</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-tp">True Positive</span></td><td style="font-size:12px;color:var(--dl-sub);">2 min ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">MXDRTBA-3148</td><td class="tsum"><div class="tsum-t">Suspicious outbound DNS: repeated NXDOMAIN responses</div><div class="tsum-m"><span class="ttag">NDR</span>MXDR Test Bed A</div></td><td><span class="pill p-high"><span class="pdot" style="background:var(--red);"></span>High</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-fp">False Positive</span></td><td style="font-size:12px;color:var(--dl-sub);">15 min ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">MXDRTBA-3147</td><td class="tsum"><div class="tsum-t">Lateral movement: Pass-the-hash from workstation WS-042</div><div class="tsum-m"><span class="ttag">SIEM</span>MXDR Test Bed A</div></td><td><span class="pill p-med"><span class="pdot" style="background:var(--amber);"></span>Medium</span></td><td><span class="badge b-prog">Triage In Progress</span></td><td>—</td><td style="font-size:12px;color:var(--dl-sub);">Just now</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">MXDRTBA-3146</td><td class="tsum"><div class="tsum-t">Auth anomaly: 47 failed logins from svc-backup@corp.com</div><div class="tsum-m"><span class="ttag">IAM</span>MXDR Test Bed A</div></td><td><span class="pill p-med"><span class="pdot" style="background:var(--amber);"></span>Medium</span></td><td><span class="badge b-ftriage">For Triage</span></td><td>—</td><td style="font-size:12px;color:var(--dl-sub);">1 hr ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pag"><button class="btns" disabled style="opacity:.4;">Previous</button><span>Page <strong>1</strong> of <strong>3</strong></span><button class="btns">Next</button></div>
+      </div>
+      <!-- Settings tab -->
+      <div class="tabcontent" id="soc-cfg">
+        <div style="max-width:640px;">
+          <h2 style="font-size:20px;font-weight:300;margin-bottom:4px;">Queue <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Settings</em></h2>
+          <p style="font-size:13px;color:var(--dl-sub);margin-bottom:20px;">SOC Triage pipeline configuration — JQL, agent, scheduler and automation</p>
+          <div class="qscard">
+            <div class="qsch" style="background:rgba(134,188,37,0.04);">
+              <div class="qsicon" style="background:rgba(134,188,37,0.12);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A8217" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:700;">SOC Triage</div><div style="font-size:11px;color:var(--dl-sub);">L1 incident triage · MXDR alerts</div></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dl-green-darker);">Scheduler</span><label class="tgl"><input type="checkbox" checked/><span class="tslider"></span></label></div>
+            </div>
+            <div class="qscb">
+              <div><div class="fl">Jira JQL Query</div><textarea class="ftarea">project = MXDRTBA AND issuetype = Incident AND created >= -24h ORDER BY priority DESC</textarea></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div><div class="fl">Poll Interval (min)</div><input type="number" class="finput" value="5"/></div>
+                <div><div class="fl">Kindo Agent</div><select class="fsel2"><option>CDA — SOC L1 Triage Agent</option></select></div>
+              </div>
+              <div style="border-top:1px solid var(--dl-border);padding-top:12px;display:flex;flex-direction:column;gap:12px;">
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-triage new tickets</div><div style="font-size:11px;color:var(--dl-sub);">Run agent automatically after Jira sync</div></div><label class="tgl"><input type="checkbox" checked/><span class="tslider"></span></label></div>
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-post to Jira</div><div style="font-size:11px;color:var(--dl-sub);">Post AI results as a Jira comment</div></div><label class="tgl"><input type="checkbox" checked/><span class="tslider"></span></label></div>
+              </div>
+            </div>
+            <div class="qscf">
+              <span style="font-size:12px;color:var(--dl-sub);">Next run: <strong style="color:var(--dl-text);">3 min</strong> · Last sync: <strong style="color:var(--dl-text);">2 min ago</strong> · <strong>47</strong> tickets</span>
+              <button class="savebtn">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== THREAT INTELLIGENCE QUEUE =================== -->
+  <div class="pageview" id="page-ti">
+    <div class="qstrip">
+      <div class="eyebrow"><span class="emdash"></span>Work Queue</div>
+      <div class="ptitle">Threat <em>Intelligence</em></div>
+    </div>
+    <div class="qtabbar">
+      <button class="qtab active" onclick="switchTab(this,'ti','dash')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="qtab" onclick="switchTab(this,'ti','work')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Workbench
+      </button>
+      <button class="qtab" onclick="switchTab(this,'ti','cfg')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Queue Settings
+      </button>
+    </div>
+    <div class="pbody">
+      <div class="tabcontent active" id="ti-dash">
+        <div class="statrow">
+          <div class="statcard"><div class="sv">18</div><div class="sl2">Total IOC Sweeps</div><div class="sdiff" style="color:var(--dl-sub);">↑ 4 since last sync</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--orange);">5</div><div class="sl2">For Analysis</div><div class="sdiff" style="color:var(--amber);">2 high confidence</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--dl-green);">11</div><div class="sl2">Analysis Complete</div><div class="sdiff" style="color:var(--dl-sub);">avg 6.1 min / sweep</div></div>
+          <div class="statcard"><div class="sv">7</div><div class="sl2">Confirmed Malicious</div><div class="sdiff" style="color:var(--dl-sub);">39% malicious rate</div></div>
+        </div>
+        <div class="sechead">Recent Activity</div>
+        <div class="panel">
+          <div class="afeed">
+            <div class="aitem"><span class="adot" style="background:var(--orange);"></span><div><div class="atxt"><strong>TI-0041</strong> malicious domain cluster confirmed — auto-posted to Jira</div><div class="ameta">kindo-agent · 4 min ago</div></div></div>
+            <div class="aitem"><span class="adot" style="background:var(--dl-green);"></span><div><div class="atxt"><strong>TI-0040</strong> IP block sweep complete — Benign (Tor exit nodes, known)</div><div class="ameta">kindo-agent · 22 min ago</div></div></div>
+            <div class="aitem"><span class="adot" style="background:#D4D4D4;"></span><div><div class="atxt">Jira sync complete — 2 new IOC sweeps imported</div><div class="ameta">system · 4 min ago</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabcontent" id="ti-work">
+        <h2 style="font-size:22px;font-weight:300;margin-bottom:2px;">IOC Sweep <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Workbench</em></h2>
+        <p style="font-size:13px;color:var(--dl-sub);margin-bottom:18px;">18 total · 5 awaiting analysis <span style="margin-left:10px;font-style:italic;color:#B8B8B8;">Surface signals, accelerate decisions</span></p>
+        <div class="fbar">
+          <div class="sw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search by IOC, ticket, or indicator..."/></div>
+          <select class="fsel"><option>All Priorities</option></select>
+          <select class="fsel"><option>All IOC Types</option><option>Domain</option><option>IP Range</option><option>Hash</option><option>URL</option></select>
+          <button class="btnp" disabled>Run Analysis (0)</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th><input type="checkbox"/></th><th>Ticket</th><th>Indicator / Sweep</th><th>IOC Type</th><th>Status</th><th>Verdict</th><th>Updated</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox"/></td><td class="tkey">TI-0041</td><td class="tsum"><div class="tsum-t">Suspicious domain cluster: *.logins-secure-update[.]com</div><div class="tsum-m"><span class="ttag">Domain</span>Recorded Future · Confidence: High</div></td><td><span class="ttag" style="background:rgba(218,41,28,.08);color:#8B0F08;">Domain</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-tp" style="background:rgba(218,41,28,.08);color:var(--red);">Malicious</span></td><td style="font-size:12px;color:var(--dl-sub);">4 min ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">TI-0040</td><td class="tsum"><div class="tsum-t">IPv4 block sweep: 185.220.101.0/24 (Tor exit nodes)</div><div class="tsum-m"><span class="ttag">IP Range</span>AbuseIPDB · Confidence: Medium</div></td><td><span class="ttag" style="background:rgba(0,163,224,.08);color:#005587;">IP Range</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-bn">Benign TP</span></td><td style="font-size:12px;color:var(--dl-sub);">22 min ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">TI-0039</td><td class="tsum"><div class="tsum-t">File hash sweep: SHA256 linked to Cobalt Strike beacon</div><div class="tsum-m"><span class="ttag">Hash</span>VirusTotal · Confidence: High</div></td><td><span class="ttag" style="background:rgba(124,58,237,.08);color:#5B21B6;">Hash</span></td><td><span class="badge b-ftriage">For Triage</span></td><td>—</td><td style="font-size:12px;color:var(--dl-sub);">1 hr ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pag"><button class="btns" disabled style="opacity:.4;">Previous</button><span>Page <strong>1</strong> of <strong>2</strong></span><button class="btns">Next</button></div>
+      </div>
+      <div class="tabcontent" id="ti-cfg">
+        <div style="max-width:640px;">
+          <h2 style="font-size:20px;font-weight:300;margin-bottom:4px;">Queue <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Settings</em></h2>
+          <p style="font-size:13px;color:var(--dl-sub);margin-bottom:20px;">Threat Intelligence pipeline — JQL, agent, scheduler and automation</p>
+          <div class="qscard">
+            <div class="qsch"><div class="qsicon" style="background:rgba(218,41,28,0.08);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B0F08" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Threat Intelligence</div><div style="font-size:11px;color:var(--dl-sub);">IOC sweeps · Feed-driven tickets</div></div><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dl-sub);">Scheduler</span><label class="tgl"><input type="checkbox" checked/><span class="tslider"></span></label></div></div>
+            <div class="qscb">
+              <div><div class="fl">Jira JQL Query</div><textarea class="ftarea">project = MXDRTI AND issuetype = "Threat Intelligence" AND created >= -24h ORDER BY priority DESC</textarea></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><div class="fl">Poll Interval (min)</div><input type="number" class="finput" value="30"/></div><div><div class="fl">Kindo Agent</div><select class="fsel2"><option>CDA — Threat Intel Analyzer</option></select></div></div>
+              <div style="border-top:1px solid var(--dl-border);padding-top:12px;display:flex;flex-direction:column;gap:12px;">
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-triage new tickets</div><div style="font-size:11px;color:var(--dl-sub);">Run agent automatically after Jira sync</div></div><label class="tgl"><input type="checkbox" checked/><span class="tslider"></span></label></div>
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-post to Jira</div><div style="font-size:11px;color:var(--dl-sub);">Post AI results as a Jira comment</div></div><label class="tgl"><input type="checkbox"/><span class="tslider"></span></label></div>
+              </div>
+            </div>
+            <div class="qscf"><span style="font-size:12px;color:var(--dl-sub);">Next run: <strong>27 min</strong> · Last sync: <strong>4 min ago</strong> · <strong>18</strong> tickets</span><button class="savebtn">Save</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== THREAT HUNT QUEUE =================== -->
+  <div class="pageview" id="page-th">
+    <div class="qstrip">
+      <div class="eyebrow"><span class="emdash"></span>Work Queue</div>
+      <div class="ptitle">Threat <em>Hunt</em></div>
+    </div>
+    <div class="qtabbar">
+      <button class="qtab active" onclick="switchTab(this,'th','dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+      <button class="qtab" onclick="switchTab(this,'th','work')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Workbench</button>
+      <button class="qtab" onclick="switchTab(this,'th','cfg')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Queue Settings</button>
+    </div>
+    <div class="pbody">
+      <div class="tabcontent active" id="th-dash">
+        <div class="statrow">
+          <div class="statcard"><div class="sv">9</div><div class="sl2">Active Hunts</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--dl-blue);">3</div><div class="sl2">For Analysis</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--dl-green);">4</div><div class="sl2">Hunt Complete</div><div class="sdiff" style="color:var(--dl-sub);">avg 18 min / hunt</div></div>
+          <div class="statcard"><div class="sv">1</div><div class="sl2">Evidence Found</div><div class="sdiff" style="color:var(--red);">Escalated to SOC</div></div>
+        </div>
+        <div class="sechead">Recent Activity</div>
+        <div class="panel"><div class="afeed">
+          <div class="aitem"><span class="adot" style="background:var(--dl-blue);"></span><div><div class="atxt"><strong>TH-0019</strong> LSASS credential harvesting confirmed on 3 hosts — escalated</div><div class="ameta">kindo-agent · 12 min ago</div></div></div>
+          <div class="aitem"><span class="adot" style="background:var(--dl-green);"></span><div><div class="atxt"><strong>TH-0018</strong> LOLBin C2 hypothesis — no evidence found</div><div class="ameta">kindo-agent · 45 min ago</div></div></div>
+        </div></div>
+      </div>
+      <div class="tabcontent" id="th-work">
+        <h2 style="font-size:22px;font-weight:300;margin-bottom:2px;">Hypothesis <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Workbench</em></h2>
+        <p style="font-size:13px;color:var(--dl-sub);margin-bottom:18px;">9 active hunts · 3 awaiting AI analysis <span style="margin-left:10px;font-style:italic;color:#B8B8B8;">Prove the hypothesis, close the gap</span></p>
+        <div class="fbar">
+          <div class="sw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search by hypothesis, MITRE technique..."/></div>
+          <select class="fsel"><option>All Priorities</option></select>
+          <select class="fsel"><option>All Statuses</option></select>
+          <button class="btnp" disabled>Run Analysis (0)</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th><input type="checkbox"/></th><th>Ticket</th><th>Hypothesis</th><th>MITRE</th><th>Status</th><th>Finding</th><th>Updated</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox"/></td><td class="tkey">TH-0019</td><td class="tsum"><div class="tsum-t">LSASS memory dumps for credential harvesting on servers</div><div class="tsum-m"><span class="ttag">Credential Access</span>240 endpoints</div></td><td><span class="ttag" style="background:rgba(218,41,28,.08);color:#8B0F08;">T1003.001</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-tp">Evidence Found</span></td><td style="font-size:12px;color:var(--dl-sub);">12 min ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">TH-0018</td><td class="tsum"><div class="tsum-t">Living-off-the-land binaries used for C2 via LOLBins</div><div class="tsum-m"><span class="ttag">Defense Evasion</span>All Windows hosts</div></td><td><span class="ttag" style="background:rgba(217,119,6,.08);color:#8B5400;">T1218</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-fp">No Evidence</span></td><td style="font-size:12px;color:var(--dl-sub);">45 min ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">TH-0017</td><td class="tsum"><div class="tsum-t">Scheduled tasks for persistence across domain controllers</div><div class="tsum-m"><span class="ttag">Persistence</span>DC environment</div></td><td><span class="ttag" style="background:rgba(124,58,237,.08);color:#5B21B6;">T1053.005</span></td><td><span class="badge b-ftriage">For Triage</span></td><td>—</td><td style="font-size:12px;color:var(--dl-sub);">2 hr ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pag"><button class="btns" disabled style="opacity:.4;">Previous</button><span>Page <strong>1</strong> of <strong>1</strong></span><button class="btns" disabled style="opacity:.4;">Next</button></div>
+      </div>
+      <div class="tabcontent" id="th-cfg">
+        <div style="max-width:640px;">
+          <h2 style="font-size:20px;font-weight:300;margin-bottom:4px;">Queue <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Settings</em></h2>
+          <p style="font-size:13px;color:var(--dl-sub);margin-bottom:20px;">Threat Hunt pipeline configuration</p>
+          <div class="qscard">
+            <div class="qsch"><div class="qsicon" style="background:rgba(0,163,224,0.08);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#005587" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Threat Hunt</div><div style="font-size:11px;color:var(--dl-sub);">Hypothesis-driven · UDM queries</div></div><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dl-sub);">Scheduler</span><label class="tgl"><input type="checkbox" checked/><span class="tslider"></span></label></div></div>
+            <div class="qscb">
+              <div><div class="fl">Jira JQL Query</div><textarea class="ftarea">project = MXDRTH AND issuetype = "Threat Hunt" AND status != Done ORDER BY created DESC</textarea></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><div class="fl">Poll Interval (min)</div><input type="number" class="finput" value="60"/></div><div><div class="fl">Kindo Agent</div><select class="fsel2"><option>CDA — Threat Hunt Analyst</option></select></div></div>
+              <div style="border-top:1px solid var(--dl-border);padding-top:12px;display:flex;flex-direction:column;gap:12px;">
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-triage new tickets</div><div style="font-size:11px;color:var(--dl-sub);">Run agent automatically after Jira sync</div></div><label class="tgl"><input type="checkbox"/><span class="tslider"></span></label></div>
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-post to Jira</div><div style="font-size:11px;color:var(--dl-sub);">Post AI results as a Jira comment</div></div><label class="tgl"><input type="checkbox" checked/><span class="tslider"></span></label></div>
+              </div>
+            </div>
+            <div class="qscf"><span style="font-size:12px;color:var(--dl-sub);">Next run: <strong>58 min</strong> · Last sync: <strong>1 hr ago</strong> · <strong>9</strong> tickets</span><button class="savebtn">Save</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== DETECTION ENGINEERING QUEUE =================== -->
+  <div class="pageview" id="page-de">
+    <div class="qstrip">
+      <div class="eyebrow"><span class="emdash"></span>Work Queue</div>
+      <div class="ptitle">Detection <em>Engineering</em></div>
+    </div>
+    <div class="qtabbar">
+      <button class="qtab active" onclick="switchTab(this,'de','dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+      <button class="qtab" onclick="switchTab(this,'de','work')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Workbench</button>
+      <button class="qtab" onclick="switchTab(this,'de','cfg')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Queue Settings</button>
+    </div>
+    <div class="pbody">
+      <div class="tabcontent active" id="de-dash">
+        <div class="statrow">
+          <div class="statcard"><div class="sv">31</div><div class="sl2">Detection Tasks</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--purple);">7</div><div class="sl2">For Review</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--dl-green);">14</div><div class="sl2">Review Complete</div></div>
+          <div class="statcard"><div class="sv" style="color:var(--amber);">—</div><div class="sl2">Scheduler</div><div class="sdiff" style="color:var(--amber);">Off — manual only</div></div>
+        </div>
+        <div class="sechead">Recent Activity</div>
+        <div class="panel"><div class="afeed">
+          <div class="aitem"><span class="adot" style="background:var(--purple);"></span><div><div class="atxt"><strong>DE-0088</strong> Sigma rule powershell_encoded_command — Add exclusion recommended</div><div class="ameta">kindo-agent · 8 min ago</div></div></div>
+          <div class="aitem"><span class="adot" style="background:var(--purple);"></span><div><div class="atxt"><strong>DE-0087</strong> Coverage gap T1566.002 — new detection rule recommended</div><div class="ameta">kindo-agent · 1 hr ago</div></div></div>
+        </div></div>
+      </div>
+      <div class="tabcontent" id="de-work">
+        <h2 style="font-size:22px;font-weight:300;margin-bottom:2px;">Tuning <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Workbench</em></h2>
+        <p style="font-size:13px;color:var(--dl-sub);margin-bottom:18px;">31 detection tasks · 7 awaiting review <span style="margin-left:10px;font-style:italic;color:#B8B8B8;">Tune faster, detect smarter</span></p>
+        <div class="fbar">
+          <div class="sw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search by rule name or ticket..."/></div>
+          <select class="fsel"><option>All Priorities</option></select>
+          <select class="fsel"><option>All Task Types</option><option>Rule Tuning</option><option>New Rule</option><option>Coverage Gap</option></select>
+          <button class="btnp" disabled>Run Analysis (0)</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th><input type="checkbox"/></th><th>Ticket</th><th>Detection Task</th><th>Type</th><th>Status</th><th>Recommendation</th><th>Updated</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox"/></td><td class="tkey">DE-0088</td><td class="tsum"><div class="tsum-t">Sigma rule: powershell_encoded_command — 68% FP rate</div><div class="tsum-m"><span class="ttag">Sigma</span>SIEM · FP Rate: 68%</div></td><td><span class="ttag" style="background:rgba(218,41,28,.08);color:#8B0F08;">Tuning</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-na">Add Exclusion</span></td><td style="font-size:12px;color:var(--dl-sub);">8 min ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">DE-0087</td><td class="tsum"><div class="tsum-t">Coverage gap: T1566.002 — no detection for Teams phishing link</div><div class="tsum-m"><span class="ttag">Coverage</span>MITRE T1566.002</div></td><td><span class="ttag" style="background:rgba(134,188,37,.10);color:#5A8217;">New Rule</span></td><td><span class="badge b-done">Triage Complete</span></td><td><span class="vchip v-tp" style="background:rgba(217,119,6,.10);color:#8B5400;">Create Rule</span></td><td style="font-size:12px;color:var(--dl-sub);">1 hr ago</td></tr>
+              <tr><td><input type="checkbox"/></td><td class="tkey">DE-0086</td><td class="tsum"><div class="tsum-t">Yara: retire trojan.emotet_variant_3 — 0 hits in 180 days</div><div class="tsum-m"><span class="ttag">Yara</span>Last match: 180 days ago</div></td><td><span class="ttag" style="background:rgba(0,163,224,.08);color:#005587;">Retire</span></td><td><span class="badge b-ftriage">For Triage</span></td><td>—</td><td style="font-size:12px;color:var(--dl-sub);">3 hr ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pag"><button class="btns" disabled style="opacity:.4;">Previous</button><span>Page <strong>1</strong> of <strong>4</strong></span><button class="btns">Next</button></div>
+      </div>
+      <div class="tabcontent" id="de-cfg">
+        <div style="max-width:640px;">
+          <h2 style="font-size:20px;font-weight:300;margin-bottom:4px;">Queue <em style="color:var(--dl-green);font-style:normal;font-weight:700;">Settings</em></h2>
+          <p style="font-size:13px;color:var(--dl-sub);margin-bottom:20px;">Detection Engineering pipeline configuration</p>
+          <div class="qscard">
+            <div class="qsch"><div class="qsicon" style="background:rgba(124,58,237,0.08);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B21B6" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Detection Engineering</div><div style="font-size:11px;color:var(--dl-sub);">Rule tuning · Coverage gaps</div></div><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dl-sub);">Scheduler</span><label class="tgl"><input type="checkbox"/><span class="tslider"></span></label></div></div>
+            <div class="qscb">
+              <div><div class="fl">Jira JQL Query</div><textarea class="ftarea">project = MXDRDE AND issuetype in ("Detection Engineering", "Rule Tuning", "Coverage Gap") ORDER BY priority DESC</textarea></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><div class="fl">Poll Interval (min)</div><input type="number" class="finput" value="15"/></div><div><div class="fl">Kindo Agent</div><select class="fsel2"><option>CDA — Detection Tuner</option></select></div></div>
+              <div style="border-top:1px solid var(--dl-border);padding-top:12px;display:flex;flex-direction:column;gap:12px;">
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-triage new tickets</div><div style="font-size:11px;color:var(--dl-sub);">Run agent automatically after Jira sync</div></div><label class="tgl"><input type="checkbox"/><span class="tslider"></span></label></div>
+                <div class="trow"><div><div style="font-size:13px;font-weight:600;">Auto-post to Jira</div><div style="font-size:11px;color:var(--dl-sub);">Post AI results as a Jira comment</div></div><label class="tgl"><input type="checkbox"/><span class="tslider"></span></label></div>
+              </div>
+            </div>
+            <div class="qscf"><span style="font-size:12px;color:var(--dl-sub);color:var(--amber);">Scheduler off · <strong>31</strong> tickets</span><button class="savebtn">Save</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== GLOBAL SETTINGS =================== -->
+  <div class="pageview" id="page-settings">
+    <div class="qstrip">
+      <div class="eyebrow"><span class="emdash"></span>Configuration</div>
+      <div class="ptitle">Platform <em>Settings</em></div>
+    </div>
+    <div class="pbody">
+      <p style="font-size:13px;color:var(--dl-sub);margin-bottom:24px;">Global platform configuration — Jira credentials, Kindo API, LLM provider. Per-queue JQL, agent and automation settings live inside each queue's own <strong>Queue Settings</strong> tab.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;">
+        <div class="qscard" style="cursor:pointer;" onclick="">
+          <div class="qsch"><div class="qsicon" style="background:#F4F5F2;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B6B" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div><div><div style="font-size:14px;font-weight:700;">General</div><div style="font-size:11px;color:var(--dl-sub);">LLM provider · Log level</div></div></div>
+        </div>
+        <div class="qscard" style="cursor:pointer;">
+          <div class="qsch"><div class="qsicon" style="background:rgba(0,163,224,0.08);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#005587" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div style="font-size:14px;font-weight:700;">Jira</div><div style="font-size:11px;color:var(--dl-sub);">Connection credentials only</div></div></div>
+        </div>
+        <div class="qscard" style="cursor:pointer;">
+          <div class="qsch"><div class="qsicon" style="background:rgba(134,188,37,0.10);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A8217" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div><div style="font-size:14px;font-weight:700;">Kindo Agents</div><div style="font-size:11px;color:var(--dl-sub);">Enable &amp; manage CDA agents</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.pageview').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  // highlight sidebar
+  const map = {dashboard:0, soc:1, ti:2, th:3, de:4, settings:5};
+  const items = document.querySelectorAll('.ni');
+  if (map[id] !== undefined) items[map[id]].classList.add('active');
+}
+function switchTab(btn, queue, tab) {
+  // deactivate all tabs in this queue
+  btn.closest('.qtabbar').querySelectorAll('.qtab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // deactivate all tabcontent in this queue's pbody
+  btn.closest('.pageview').querySelectorAll('.tabcontent').forEach(c => c.classList.remove('active'));
+  document.getElementById(queue + '-' + tab).classList.add('active');
+}
+// set default active sidebar item
+document.querySelectorAll('.ni')[0].classList.add('active');
+</script>
+</body>
+</html>

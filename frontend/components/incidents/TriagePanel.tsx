@@ -4,10 +4,11 @@ import { useState } from "react";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChevronRight, Crosshair, MessageSquare, Zap } from "lucide-react";
+import { ChevronRight, Crosshair, MessageSquare, PenLine, Zap } from "lucide-react";
 import { TriageStatusBadge } from "@/components/dashboard/TriageStatusBadge";
 import { canonicalizeTriageStatus } from "@/lib/triage-status";
 import { postTriageToJira } from "@/hooks/use-incidents";
+import apiClient from "@/lib/api-client";
 import type { Incident } from "@/types/incident";
 
 function parseAgentOutput(raw: string): string {
@@ -33,13 +34,27 @@ function getTitleAccent(summary: string): { lead: string; accent?: string } {
   return { lead: summary.slice(0, colonIdx + 1), accent: summary.slice(colonIdx + 1).trim() };
 }
 
-export function TriagePanel({ incident }: { incident: Incident }) {
+export function TriagePanel({ incident, mutate }: { incident: Incident; mutate: () => void }) {
   const normalizedStatus = canonicalizeTriageStatus(incident.triageStatus);
   const triage = incident.triageResults;
   const displayText = triage?.agentOutput ? parseAgentOutput(triage.agentOutput) : "";
   const [posting, setPosting] = useState(false);
   const [postStatus, setPostStatus] = useState("");
   const [metaOpen, setMetaOpen] = useState(false);
+  const [assessmentEditing, setAssessmentEditing] = useState(false);
+  const [assessmentText, setAssessmentText] = useState("");
+  const [savingAssessment, setSavingAssessment] = useState(false);
+
+  async function handleSaveAssessment() {
+    setSavingAssessment(true);
+    try {
+      await apiClient.patch(`/api/incidents/${incident._id}`, { analystAssessment: assessmentText });
+      mutate();
+      setAssessmentEditing(false);
+    } finally {
+      setSavingAssessment(false);
+    }
+  }
 
   const titleParts = getTitleAccent(incident.summary);
 
@@ -110,6 +125,63 @@ export function TriagePanel({ incident }: { incident: Incident }) {
                 {displayText}
               </ReactMarkdown>
             </div>
+          </div>
+
+          {/* Analyst Assessment */}
+          <div className="border-t border-[var(--dl-border)]">
+            <div className="flex items-center justify-between px-[22px] py-3.5">
+              <div className="flex items-center gap-2">
+                <PenLine className="size-3.5 text-[var(--dl-text-secondary)]" />
+                <span className="text-[13px] font-semibold text-[var(--foreground)]">Analyst Assessment</span>
+              </div>
+              {!assessmentEditing && (
+                <button
+                  type="button"
+                  onClick={() => { setAssessmentEditing(true); setAssessmentText(incident.analystAssessment ?? ""); }}
+                  className="text-[11px] font-semibold text-[var(--dl-green-dark)] hover:underline"
+                >
+                  {incident.analystAssessment ? "Edit" : "Add"}
+                </button>
+              )}
+            </div>
+            {assessmentEditing ? (
+              <div className="px-[22px] pb-4">
+                <textarea
+                  rows={5}
+                  value={assessmentText}
+                  onChange={(e) => setAssessmentText(e.target.value)}
+                  placeholder="Enter your assessment…"
+                  className="w-full resize-y rounded-md border border-[var(--dl-border)] bg-[#FAFAFA] px-3 py-2 text-[13px] text-[var(--foreground)] outline-none transition-colors placeholder:text-[#B0B0B0] focus:border-[var(--dl-border-strong)] focus:ring-2 focus:ring-[#86BC25]/30"
+                />
+                <div className="mt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAssessmentEditing(false)}
+                    className="rounded-md border border-[var(--dl-border)] px-3 py-1.5 text-[12px] font-semibold text-[var(--dl-text-secondary)] hover:bg-[#FAFAFA]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAssessment}
+                    disabled={savingAssessment}
+                    className="rounded-md bg-[#86BC25] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#6FA01E] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {savingAssessment ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-[22px] pb-4">
+                {incident.analystAssessment ? (
+                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--foreground)]">
+                    {incident.analystAssessment}
+                  </p>
+                ) : (
+                  <p className="text-[13px] italic text-[var(--dl-text-secondary)]">No assessment yet.</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer */}

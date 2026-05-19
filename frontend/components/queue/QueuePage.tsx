@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, LayoutDashboard, Briefcase, Settings2 } from "lucide-react";
 import { mutate as globalMutate } from "swr";
 import { IncidentTable } from "@/components/dashboard/IncidentTable";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { triggerTriage, useIncidents, useQueueStats } from "@/hooks/use-incidents";
 import { useActivityFeed } from "@/hooks/use-activity";
-import { useAppSettings, useKindoAgents } from "@/hooks/use-settings";
+import { useAppSettings, useKindoAgents, useQueueSchedulerStatus } from "@/hooks/use-settings";
 import apiClient from "@/lib/api-client";
 import type { QueueType } from "@/types/incident";
 import type { QueueSettings } from "@/types/settings";
@@ -228,6 +228,78 @@ function WorkbenchTab({ meta }: { meta: QueueMeta }) {
   );
 }
 
+// ─── Scheduler Status ────────────────────────────────────────────────────────
+
+function useCountdown(nextRunAt: string | null): string {
+  const [display, setDisplay] = useState("—");
+  useEffect(() => {
+    if (!nextRunAt) { setDisplay("—"); return; }
+    const tick = () => {
+      const secs = Math.max(0, Math.floor((new Date(nextRunAt).getTime() - Date.now()) / 1000));
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      setDisplay(`${m}m ${s.toString().padStart(2, "0")}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [nextRunAt]);
+  return display;
+}
+
+function SchedulerStatusCard({ queueType, accentColor }: { queueType: QueueType; accentColor: string }) {
+  const status = useQueueSchedulerStatus(queueType);
+  const countdown = useCountdown(status?.nextRunAt ?? null);
+
+  if (!status) return null;
+
+  const isActive = status.enabled && status.jobScheduled;
+
+  return (
+    <div className="rounded-[12px] border border-[var(--dl-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--dl-text-secondary)]">
+          Scheduler Status
+        </p>
+        <span
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+          style={
+            isActive
+              ? { background: "rgba(134,188,37,0.1)", color: "#5A8217" }
+              : { background: "rgba(0,0,0,0.05)", color: "#888" }
+          }
+        >
+          <span
+            className="h-[6px] w-[6px] rounded-full"
+            style={{ background: isActive ? "#86BC25" : "#C0C0C0" }}
+          />
+          {isActive ? "Active" : "Inactive"}
+        </span>
+      </div>
+      {isActive && status.nextRunAt ? (
+        <div className="flex items-baseline gap-3">
+          <div>
+            <p className="text-[11px] text-[var(--dl-text-secondary)]">Next pull in</p>
+            <p className="text-[26px] font-light leading-tight" style={{ color: accentColor }}>
+              {countdown}
+            </p>
+          </div>
+          <div className="ml-4">
+            <p className="text-[11px] text-[var(--dl-text-secondary)]">Interval</p>
+            <p className="text-[15px] font-semibold text-[var(--foreground)]">
+              {status.intervalMinutes} min
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-[13px] text-[var(--dl-text-secondary)]">
+          Enable the scheduler and save to start automated Jira pulls.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Queue Settings Tab ───────────────────────────────────────────────────────
 
 function QueueSettingsTab({ meta }: { meta: QueueMeta }) {
@@ -287,8 +359,9 @@ function QueueSettingsTab({ meta }: { meta: QueueMeta }) {
 
   const toggle = (checked: boolean, setter: (v: boolean) => void) => (
     <button
+      type="button"
       onClick={() => setter(!checked)}
-      className={`relative h-5 w-9 rounded-full transition-colors ${checked ? "bg-[#86BC25]" : "bg-[#D0D0D0]"}`}
+      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full border-0 p-0 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#86BC25]/50 ${checked ? "bg-[#86BC25]" : "bg-[#D0D0D0]"}`}
     >
       <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
     </button>
@@ -296,6 +369,7 @@ function QueueSettingsTab({ meta }: { meta: QueueMeta }) {
 
   return (
     <div className="max-w-2xl space-y-6">
+      <SchedulerStatusCard queueType={meta.queueType} accentColor={meta.accentColor} />
       <div className="rounded-[12px] border border-[var(--dl-border)] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         {/* Card header */}
         <div className="flex items-center justify-between border-b border-[var(--dl-border)] px-6 py-4">

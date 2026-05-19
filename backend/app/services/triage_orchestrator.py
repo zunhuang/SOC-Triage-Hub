@@ -63,33 +63,56 @@ _VERDICT_KEYWORDS: list[tuple[str, str]] = [
     ("true positive", "true_positive"),
     ("no action required", "benign_tp"),
     ("no immediate action", "benign_tp"),
+    ("escalate to l2", "needs_analyst"),
+    ("escalate to l3", "needs_analyst"),
+    ("escalate to analyst", "needs_analyst"),
+    ("escalate to tier", "needs_analyst"),
     ("escalation recommended", "needs_analyst"),
     ("requires analyst", "needs_analyst"),
+    ("needs analyst", "needs_analyst"),
+    ("further investigation", "needs_analyst"),
+    ("escalate", "needs_analyst"),
     ("malicious", "true_positive"),
     ("benign", "benign_tp"),
 ]
 
 
 def _extract_verdict(report_text: str) -> tuple[str | None, str | None]:
-    """Extract verdict and headline from a triage report using text patterns."""
+    """Extract verdict enum and raw verdict label from a triage report.
+
+    Returns (verdict_enum, raw_verdict_text) where raw_verdict_text is the
+    short label from the agent's Verdict: line (e.g. "Escalate to L2").
+    """
     if not report_text:
         return None, None
 
-    lower = report_text.lower()
-    verdict = None
-    for keyword, verdict_value in _VERDICT_KEYWORDS:
-        if keyword in lower:
-            verdict = verdict_value
-            break
+    verdict: str | None = None
+    raw_verdict_text: str | None = None
 
-    headline_match = re.search(
-        r"\*\*Headline[:\s]*\*\*\s*(.+?)(?:\n\n|\n##|\n\*\*)",
+    # 1. Look for an explicit "Verdict:" line — most reliable signal.
+    #    Handles: **Verdict: Escalate to L2**  /  Verdict: False Positive  /  **Final Verdict:** ...
+    m = re.search(
+        r"\bverdict\b[\s:*]+(.+?)[\s*]*$",
         report_text,
-        re.DOTALL,
+        re.IGNORECASE | re.MULTILINE,
     )
-    verdict_summary = headline_match.group(1).strip()[:300] if headline_match else None
+    if m:
+        raw_verdict_text = m.group(1).strip().strip("*").strip()
+        lower = raw_verdict_text.lower()
+        for keyword, verdict_value in _VERDICT_KEYWORDS:
+            if keyword in lower:
+                verdict = verdict_value
+                break
 
-    return verdict, verdict_summary
+    # 2. Fall back to full-report keyword scan if explicit section didn't yield a match
+    if verdict is None:
+        lower = report_text.lower()
+        for keyword, verdict_value in _VERDICT_KEYWORDS:
+            if keyword in lower:
+                verdict = verdict_value
+                break
+
+    return verdict, raw_verdict_text
 
 
 def _parse_remediation_steps(raw: Any) -> list[dict[str, Any]]:
@@ -191,7 +214,17 @@ async def run_triage_for_incident(
         raise AppError(message="Incident not found", code="incident_not_found", status_code=404)
 
     settings = await get_settings(db)
-    agent_id = agent_id_override or settings.get("selectedTriageAgentId")
+
+    # Resolve per-queue config (falls back to global flat fields for legacy incidents)
+    queue_type = incident.get("queueType", "soc_triage")
+    queues = settings.get("queues", [])
+    queue_cfg = next((q for q in queues if q["queueType"] == queue_type), {})
+
+    agent_id = (
+        agent_id_override
+        or queue_cfg.get("agentId")
+        or settings.get("selectedTriageAgentId")
+    )
 
     if not agent_id:
         active = await db.agents.find_one(
@@ -418,8 +451,9 @@ async def run_triage_for_incident(
         incident_number=incident.get("jiraKey"),
     )
 
-    # Auto-post to Jira if enabled
-    if settings.get("autoPostToJira") and incident.get("jiraKey") and raw_text:
+    # Auto-post to Jira if enabled (per-queue flag, fallback to legacy flat flag)
+    auto_post_enabled = queue_cfg.get("autoPostToJira") or settings.get("autoPostToJira", False)
+    if auto_post_enabled and incident.get("jiraKey") and raw_text:
         try:
             jira_body = md_to_jira(raw_text)
             jira_client = JiraClient.from_settings(settings)

@@ -56,6 +56,11 @@ export interface Incident {
   triageCompletedAt?: string;
   triageResults?: TriageResults;
   remediationSteps?: RemediationStep[];
+  analystAssessment?: string;
+  humanVerdict?: string;
+  humanVerdictActor?: string;
+  humanVerdictNote?: string;
+  humanVerdictAt?: string;
   activityLog: ActivityLogEntry[];
   jiraRawData: unknown;
   syncHash: string;

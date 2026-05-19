@@ -23,6 +23,11 @@ class IncidentPatchRequest(BaseModel):
     state: str | None = None
     manualNotes: str | None = None
     remediationSteps: list[dict] | None = None
+    assignee: str | None = None
+    analystAssessment: str | None = None
+    humanVerdict: str | None = None
+    humanVerdictActor: str | None = None
+    humanVerdictNote: str | None = None
 
 
 class SyncSummary(BaseModel):

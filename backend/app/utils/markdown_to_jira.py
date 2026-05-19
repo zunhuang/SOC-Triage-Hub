@@ -9,6 +9,7 @@ def md_to_jira(text: str) -> str:
     result: list[str] = []
     in_code_block = False
     code_lang = ""
+    in_table = False  # tracks whether previous line was a table row
 
     for line in lines:
         # Code block toggle
@@ -21,73 +22,62 @@ def md_to_jira(text: str) -> str:
                 result.append("{code}")
                 in_code_block = False
                 code_lang = ""
+            in_table = False
             continue
 
         if in_code_block:
             result.append(line)
             continue
 
-        converted = _convert_line(line)
+        converted, in_table = _convert_line(line, in_table)
         result.append(converted)
 
     return "\n".join(result)
 
 
-def _convert_line(line: str) -> str:
+def _convert_line(line: str, in_table: bool) -> tuple[str, bool]:
+    """Convert a single markdown line. Returns (converted_line, in_table)."""
     # Headings: ## Heading -> h2. Heading
     m = re.match(r"^(#{1,6})\s+(.*)", line)
     if m:
         level = len(m.group(1))
-        return f"h{level}. {m.group(2)}"
+        return f"h{level}. {m.group(2)}", False
 
     # Horizontal rule
     if re.match(r"^-{3,}\s*$", line):
-        return "----"
+        return "----", False
 
-    # Table header row: | H1 | H2 | -> || H1 || H2 ||
+    # Table row: | ... |
     if re.match(r"^\|.*\|$", line.strip()):
         # Skip separator rows like |---|---|
         if re.match(r"^\|[\s\-:|]+\|$", line.strip()):
-            return ""
+            return "", in_table
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        # Detect header row (usually first row or bold content)
-        return _convert_table_row(cells, line)
+        # First row of a table block → header
+        if not in_table:
+            return "|| " + " || ".join(_convert_inline(c) for c in cells) + " ||", True
+        return "| " + " | ".join(_convert_inline(c) for c in cells) + " |", True
 
-    # Unordered list: - item or * item -> * item
+    # Unordered list: - item or * item -> * item (cap depth at 3)
     m = re.match(r"^(\s*)[-*]\s+(.*)", line)
     if m:
-        indent = len(m.group(1)) // 2 + 1
-        return f"{'*' * indent} {_convert_inline(m.group(2))}"
+        indent = min(len(m.group(1)) // 2 + 1, 3)
+        return f"{'*' * indent} {_convert_inline(m.group(2))}", False
 
-    # Ordered list: 1. item -> # item
+    # Ordered list: convert to bullet points at the appropriate depth.
+    # Jira nested numbered lists render as "1. 1. 1." which looks broken
+    # in comments; bullet points are universally readable.
     m = re.match(r"^(\s*)\d+\.\s+(.*)", line)
     if m:
-        indent = len(m.group(1)) // 2 + 1
-        return f"{'#' * indent} {_convert_inline(m.group(2))}"
+        indent = min(len(m.group(1)) // 2 + 1, 3)
+        return f"{'*' * indent} {_convert_inline(m.group(2))}", False
 
-    # Blockquote: > text -> {quote}text{quote}
+    # Blockquote: > text -> bq. text
     m = re.match(r"^>\s?(.*)", line)
     if m:
-        return f"bq. {_convert_inline(m.group(1))}"
+        return f"bq. {_convert_inline(m.group(1))}", False
 
-    return _convert_inline(line)
-
-
-_table_context: dict[str, bool] = {"first_row": True}
-
-
-def _convert_table_row(cells: list[str], raw_line: str) -> str:
-    # Simple heuristic: if it's the first table row we see, treat as header
-    # Reset context on empty lines (handled by caller patterns)
-    if not hasattr(_convert_table_row, "_prev_was_table"):
-        _convert_table_row._prev_was_table = False  # type: ignore[attr-defined]
-
-    is_header = not _convert_table_row._prev_was_table  # type: ignore[attr-defined]
-    _convert_table_row._prev_was_table = True  # type: ignore[attr-defined]
-
-    if is_header:
-        return "|| " + " || ".join(_convert_inline(c) for c in cells) + " ||"
-    return "| " + " | ".join(_convert_inline(c) for c in cells) + " |"
+    return _convert_inline(line), False
 
 
 def _convert_inline(text: str) -> str:

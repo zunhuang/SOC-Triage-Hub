@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Check, ChevronRight, Clock, RefreshCcw, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Clock, RefreshCcw, ShieldCheck, Trash2 } from "lucide-react";
+import { ActivityTimeline } from "@/components/incidents/ActivityTimeline";
 import { IncidentDetail } from "@/components/incidents/IncidentDetail";
 import { TriagePanel } from "@/components/incidents/TriagePanel";
 import { TriageStatusBadge } from "@/components/dashboard/TriageStatusBadge";
@@ -81,6 +82,10 @@ export default function IncidentDetailPage() {
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [launchStatus, setLaunchStatus] = useState("");
   const [isLaunching, setIsLaunching] = useState(false);
+  const [verdictOverrideOpen, setVerdictOverrideOpen] = useState(false);
+  const [verdictOverrideValue, setVerdictOverrideValue] = useState("");
+  const [verdictOverrideNote, setVerdictOverrideNote] = useState("");
+  const [savingVerdictOverride, setSavingVerdictOverride] = useState(false);
 
   const enabledAgents = useMemo(
     () => (agents ?? []).filter((agent) => agent.isActive && (agent.agentType === "workflow" || agent.agentType === "chatbot")),
@@ -121,6 +126,23 @@ export default function IncidentDetailPage() {
     router.push("/incidents");
   }
 
+  async function handleSaveVerdictOverride() {
+    if (!data || !verdictOverrideValue) return;
+    setSavingVerdictOverride(true);
+    try {
+      await apiClient.patch(`/api/incidents/${data._id}`, {
+        humanVerdict: verdictOverrideValue,
+        humanVerdictActor: "Digital Analyst",
+        humanVerdictNote: verdictOverrideNote.trim() || null,
+      });
+      setVerdictOverrideOpen(false);
+      setVerdictOverrideNote("");
+      await mutate();
+    } finally {
+      setSavingVerdictOverride(false);
+    }
+  }
+
   if (isLoading || !data) {
     return <p className="text-sm text-muted-foreground">Loading incident...</p>;
   }
@@ -130,6 +152,11 @@ export default function IncidentDetailPage() {
   const verdict = verdictConfig[normalizedStatus];
   const showVerdictBanner = !!verdict && !!data.triageResults;
   const selectedAgentName = enabledAgents.find((a) => a.kindoAgentId === effectiveAgentId)?.name;
+
+  // Only show a mapped label — verdictSummary may contain stale data from old triage runs
+  const verdictDisplayText = data.triageResults?.verdict
+    ? (verdictLabel[data.triageResults.verdict] ?? data.triageResults.verdict)
+    : null;
 
   let elapsedMin: number | null = null;
   if (data.triageStartedAt && data.triageResults?.completedAt) {
@@ -279,12 +306,12 @@ export default function IncidentDetailPage() {
             <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: verdict.iconBg }}>
               Triage Verdict &middot; {verdict.labelExtra}
             </div>
-            <div className="text-[18px] font-bold" style={{ color: verdict.iconBg }}>
-              {data.triageResults?.verdict
-                ? verdictLabel[data.triageResults.verdict] ?? data.triageResults.verdict
-                : normalizedStatus}
-            </div>
-            <div className="text-[12px] text-[var(--dl-text-secondary)]">
+            {verdictDisplayText && (
+              <div className="text-[18px] font-bold leading-snug" style={{ color: verdict.iconBg }}>
+                {verdictDisplayText}
+              </div>
+            )}
+            <div className="mt-1 text-[12px] text-[var(--dl-text-secondary)]">
               AI triage completed &middot; See full analysis below
             </div>
           </div>
@@ -297,11 +324,92 @@ export default function IncidentDetailPage() {
         </div>
       )}
 
+      {/* Human verdict override display */}
+      {data.humanVerdict && (
+        <div className="flex flex-wrap items-center gap-3 rounded-[8px] border border-[rgba(0,85,135,0.2)] bg-[#E5F6FC] px-4 py-3">
+          <ShieldCheck className="size-4 shrink-0 text-[#005587]" />
+          <span className="text-[13px] font-semibold text-[#005587]">
+            Human Override: {verdictLabel[data.humanVerdict] ?? data.humanVerdict}
+          </span>
+          {data.humanVerdictNote && (
+            <span className="text-[13px] text-[#3a6b8a]">— {data.humanVerdictNote}</span>
+          )}
+          {data.humanVerdictActor && (
+            <span className="text-[12px] text-[var(--dl-text-secondary)]">by {data.humanVerdictActor}</span>
+          )}
+          <button
+            type="button"
+            onClick={() => { setVerdictOverrideOpen(true); setVerdictOverrideValue(data.humanVerdict ?? ""); setVerdictOverrideNote(data.humanVerdictNote ?? ""); }}
+            className="ml-auto text-[11px] font-semibold text-[#005587] hover:underline"
+          >
+            Edit
+          </button>
+        </div>
+      )}
+
+      {/* Verdict override form */}
+      {(normalizedStatus === "Triage Complete" || normalizedStatus === "Triage Failed") && data.triageResults && (
+        <div>
+          {!verdictOverrideOpen && !data.humanVerdict && (
+            <button
+              type="button"
+              onClick={() => { setVerdictOverrideOpen(true); setVerdictOverrideValue(""); setVerdictOverrideNote(""); }}
+              className="text-[12px] font-semibold text-[var(--dl-green-dark)] hover:underline"
+            >
+              + Override AI Verdict
+            </button>
+          )}
+          {verdictOverrideOpen && (
+            <div className="rounded-[10px] border border-[var(--dl-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+              <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.10em] text-[var(--dl-text-secondary)]">
+                Override AI Verdict
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <select
+                  value={verdictOverrideValue}
+                  onChange={(e) => setVerdictOverrideValue(e.target.value)}
+                  className="rounded-md border border-[var(--dl-border)] bg-white px-3 py-2 text-[13px] outline-none focus:border-[var(--dl-border-strong)]"
+                >
+                  <option value="">Select verdict…</option>
+                  {Object.entries(verdictLabel).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+                <input
+                  value={verdictOverrideNote}
+                  onChange={(e) => setVerdictOverrideNote(e.target.value)}
+                  placeholder="Reason / note (optional)"
+                  className="min-w-[200px] flex-1 rounded-md border border-[var(--dl-border)] bg-white px-3 py-2 text-[13px] outline-none focus:border-[var(--dl-border-strong)]"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveVerdictOverride}
+                  disabled={!verdictOverrideValue || savingVerdictOverride}
+                  className="inline-flex items-center gap-2 rounded-md bg-[#86BC25] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#6FA01E] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingVerdictOverride ? "Saving…" : "Save Override"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVerdictOverrideOpen(false)}
+                  className="rounded-md border border-[var(--dl-border)] px-4 py-2 text-[13px] font-semibold text-[var(--dl-text-secondary)] hover:bg-[#FAFAFA]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Two-column detail */}
       <div className="grid items-start gap-5 lg:grid-cols-[1fr_1.7fr] [&>*]:min-w-0">
-        <IncidentDetail incident={data} />
-        <TriagePanel incident={data} />
+        <IncidentDetail incident={data} mutate={mutate} />
+        <TriagePanel incident={data} mutate={mutate} />
       </div>
+
+      {/* Activity timeline */}
+      <ActivityTimeline incident={data} mutate={mutate} />
     </div>
   );
 }

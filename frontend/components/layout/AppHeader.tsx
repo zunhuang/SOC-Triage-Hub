@@ -9,6 +9,17 @@ type PipelineState = "active" | "partial" | "inactive";
 function usePipelineState(): PipelineState {
   const { data: settings } = useAppSettings();
   if (!settings) return "inactive";
+  const queues = settings.queues ?? [];
+  if (queues.length > 0) {
+    const anyScheduler  = queues.some((q) => q.enableScheduler);
+    const anyAutoTriage = queues.some((q) => q.autoTriageEnabled);
+    const anyAutoPost   = queues.some((q) => q.autoPostToJira);
+    const onCount = [anyScheduler, anyAutoTriage, anyAutoPost].filter(Boolean).length;
+    if (onCount === 3) return "active";
+    if (onCount > 0) return "partial";
+    return "inactive";
+  }
+  // Legacy fallback
   const flags = [settings.enableScheduler, settings.autoTriageEnabled, settings.autoPostToJira];
   const onCount = flags.filter(Boolean).length;
   if (onCount === 3) return "active";

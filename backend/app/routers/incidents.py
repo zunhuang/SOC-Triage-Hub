@@ -6,6 +6,8 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from pydantic import BaseModel
+
 from app.core.errors import AppError, NotFoundError
 from app.db.mongo import get_db
 from app.schemas.incidents import IncidentPatchRequest
@@ -137,30 +139,95 @@ async def update_incident(
     if incident is None:
         raise NotFoundError("Incident not found", code="incident_not_found")
 
-    update_doc = payload.model_dump(exclude_none=True)
-    if "triageStatus" in update_doc:
-        statuses = status_filter_values(update_doc["triageStatus"])
-        update_doc["triageStatus"] = statuses[0]
-    if update_doc.get("manualNotes"):
-        update_doc["$push"] = {
-            "activityLog": {
-                "timestamp": datetime.now(timezone.utc),
-                "action": "note",
-                "actor": "user",
-                "details": update_doc["manualNotes"],
-            }
-        }
+    update_fields = payload.model_dump(exclude_none=True)
+    activity_entries: list[dict] = []
+    now = datetime.now(timezone.utc)
 
-    update_doc["updatedAt"] = datetime.now(timezone.utc)
+    if "triageStatus" in update_fields:
+        statuses = status_filter_values(update_fields["triageStatus"])
+        update_fields["triageStatus"] = statuses[0]
 
-    set_doc = {key: value for key, value in update_doc.items() if key != "$push"}
-    update_ops: dict = {"$set": set_doc}
-    if "$push" in update_doc:
-        update_ops["$push"] = update_doc["$push"]
+    if "manualNotes" in update_fields:
+        activity_entries.append({
+            "timestamp": now,
+            "action": "note",
+            "actor": "user",
+            "details": update_fields.pop("manualNotes"),
+        })
+
+    if "assignee" in update_fields:
+        new_assignee = update_fields["assignee"] or "Unassigned"
+        activity_entries.append({
+            "timestamp": now,
+            "action": "assign",
+            "actor": "Digital Analyst",
+            "details": f"Assigned to {new_assignee}",
+        })
+
+    if "analystAssessment" in update_fields:
+        activity_entries.append({
+            "timestamp": now,
+            "action": "assessment",
+            "actor": "Digital Analyst",
+            "details": "Analyst assessment updated",
+        })
+
+    if "humanVerdict" in update_fields:
+        update_fields["humanVerdictAt"] = now
+        actor = update_fields.get("humanVerdictActor", "Digital Analyst")
+        activity_entries.append({
+            "timestamp": now,
+            "action": "verdict_override",
+            "actor": actor,
+            "details": f"Verdict overridden: {update_fields['humanVerdict']}",
+        })
+
+    update_fields["updatedAt"] = now
+    update_ops: dict = {"$set": update_fields}
+    if activity_entries:
+        update_ops["$push"] = {"activityLog": {"$each": activity_entries}}
 
     await db.incidents.update_one({"_id": object_id}, update_ops)
     updated = await db.incidents.find_one({"_id": object_id})
     return serialize(updated)
+
+
+class CommentPayload(BaseModel):
+    text: str
+    actor: str = "Digital Analyst"
+
+
+@router.post("/{incident_id}/comments")
+async def add_comment(
+    incident_id: str,
+    payload: CommentPayload,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> dict:
+    object_id = _to_object_id(incident_id)
+    incident = await db.incidents.find_one({"_id": object_id})
+    if incident is None:
+        raise NotFoundError("Incident not found", code="incident_not_found")
+    if not payload.text.strip():
+        raise AppError(message="Comment text cannot be empty", code="empty_comment", status_code=400)
+
+    entry = {
+        "timestamp": datetime.now(timezone.utc),
+        "action": "comment",
+        "actor": payload.actor,
+        "details": payload.text.strip(),
+    }
+    await db.incidents.update_one(
+        {"_id": object_id},
+        {"$push": {"activityLog": entry}},
+    )
+    await record_activity(
+        db,
+        action="Comment added",
+        message=f"{payload.actor} commented on {incident.get('jiraKey')}",
+        actor=payload.actor,
+        incident_number=incident.get("jiraKey"),
+    )
+    return serialize({"ok": True, "entry": entry})
 
 
 @router.post("/{incident_id}/post-to-jira")
@@ -179,7 +246,12 @@ async def post_triage_to_jira(incident_id: str, db: AsyncIOMotorDatabase = Depen
     if not agent_output:
         raise AppError(message="No triage output to post", code="no_triage_output", status_code=400)
 
-    jira_body = md_to_jira(agent_output)
+    full_output = agent_output
+    analyst_assessment = incident.get("analystAssessment", "")
+    if analyst_assessment:
+        full_output += f"\n\n---\n\n## Analyst Assessment\n\n{analyst_assessment}"
+
+    jira_body = md_to_jira(full_output)
 
     runtime_settings = await get_settings(db)
     client = JiraClient.from_settings(runtime_settings)

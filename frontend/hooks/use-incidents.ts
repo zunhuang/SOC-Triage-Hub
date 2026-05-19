@@ -79,3 +79,7 @@ export async function deleteIncident(id: string) {
 export async function postTriageToJira(id: string) {
   return apiClient.post<{ posted: boolean; jiraKey: string }>(`/api/incidents/${id}/post-to-jira`);
 }
+
+export async function addComment(id: string, text: string): Promise<void> {
+  await apiClient.post(`/api/incidents/${id}/comments`, { text, actor: "Digital Analyst" });
+}

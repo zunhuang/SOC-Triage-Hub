@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — Mission Control Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Open Sans", "Inter", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background: #F4F4F4;
+    color: #1A1A1A;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: #1A1A1A;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    flex-shrink: 0;
+  }
+  .header-logo { display: flex; align-items: center; gap: 12px; }
+  .logo-text { color: #fff; font-size: 14px; font-weight: 700; letter-spacing: .06em; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .header-pill {
+    background: rgba(134,188,37,.15); border: 1px solid rgba(134,188,37,.3);
+    color: #86BC25; font-size: 11px; font-weight: 600; letter-spacing: .08em;
+    padding: 3px 10px; border-radius: 100px;
+  }
+  .header-user { color: #8C8C8C; font-size: 13px; }
+
+  /* ── Shell ── */
+  .shell { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px; background: #282728; color: #fff;
+    flex-shrink: 0; display: flex; flex-direction: column; padding-top: 20px;
+  }
+  .sb-label { font-size: 10px; font-weight: 700; letter-spacing: .14em; color: #8C8C8C; padding: 0 24px 10px; }
+  .sb-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 24px; font-size: 14px; color: #C8C8C8;
+    border-left: 3px solid transparent; cursor: pointer; text-decoration: none;
+  }
+  .sb-item.active { border-color: #86BC25; background: rgba(134,188,37,.10); color: #fff; font-weight: 600; }
+  .sb-item:hover:not(.active) { background: rgba(255,255,255,0.04); color: #fff; }
+  .sb-icon { width: 18px; height: 18px; opacity: .6; flex-shrink: 0; }
+  .sb-item.active .sb-icon { opacity: 1; color: #86BC25; }
+  .sb-badge { margin-left: auto; border-radius: 100px; font-size: 10px; font-weight: 700; color: #000; padding: 1px 6px; min-width: 20px; text-align: center; }
+  .sb-section { margin-top: 16px; }
+  .sb-footer { margin-top: auto; border-top: 1px solid rgba(255,255,255,.06); padding: 16px 24px; font-size: 11px; color: #6B6B6B; line-height: 1.6; }
+  .sb-footer-dot { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #86EB22; margin-bottom: 4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #86EB22; }
+
+  /* ── Main ── */
+  .main { flex: 1; overflow-y: auto; padding: 24px 24px 32px; display: flex; flex-direction: column; gap: 28px; }
+
+  /* ── Page Header ── */
+  .page-eyebrow { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: .16em; color: #888; margin-bottom: 6px; }
+  .page-eyebrow-bar { width: 24px; height: 2px; background: #86BC25; }
+  .page-title { font-size: 30px; font-weight: 300; letter-spacing: -.01em; line-height: 1.2; }
+  .page-title em { font-style: normal; font-weight: 700; color: #86BC25; }
+  .page-sub { font-size: 14px; color: #888; margin-top: 4px; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #888;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg,#E6E6E6,transparent); }
+
+  /* ── Queue Pulse ── */
+  .queue-pulse-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  .qp-card {
+    border: 1px solid #E8E8E8;
+    border-radius: 12px;
+    padding: 20px 20px 18px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow .15s, transform .15s;
+    min-height: 170px;
+  }
+  .qp-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.09); transform: translateY(-2px); }
+
+  /* Left accent bar */
+  .qp-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; }
+
+  /* Background watermark icon */
+  .qp-watermark {
+    position: absolute; bottom: -10px; right: -10px;
+    opacity: 0.07; pointer-events: none;
+  }
+  .qp-watermark svg { width: 88px; height: 88px; }
+
+  /* Top row: eyebrow label + icon badge */
+  .qp-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .qp-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; line-height: 1; }
+  .qp-icon-wrap {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .qp-icon-wrap svg { width: 15px; height: 15px; }
+
+  /* Count */
+  .qp-count { font-size: 44px; font-weight: 600; line-height: 1; letter-spacing: -.02em; }
+  .qp-count-sub { font-size: 13px; color: #888; margin-top: 3px; font-weight: 500; }
+
+  /* Footer row */
+  .qp-footer { margin-top: auto; padding-top: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .qp-sched { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+  .sched-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .sched-on  { background: #86BC25; box-shadow: 0 0 0 2px rgba(134,188,37,.2); }
+  .sched-off { background: #C0C0C0; }
+  .qp-link { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-decoration: none; }
+
+  /* ── Stat Cards (Global) ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .stat-card {
+    border: 1px solid #E8E8E8;
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    min-height: 120px;
+  }
+  .stat-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; }
+  .stat-watermark { position: absolute; bottom: -8px; right: -8px; opacity: 0.07; pointer-events: none; }
+  .stat-watermark svg { width: 72px; height: 72px; }
+  .stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .stat-label { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #666; }
+  .stat-icon-wrap { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+  .stat-icon-wrap svg { width: 13px; height: 13px; }
+  .stat-value { font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -.02em; }
+  .stat-sub { font-size: 12px; color: #888; margin-top: 3px; }
+
+  /* ── Two-col bottom ── */
+  .two-col { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+  /* ── Panel ── */
+  .panel {
+    background: #fff; border: 1px solid #E6E6E6;
+    border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid #F0F0F0;
+  }
+  .panel-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+  .panel-badge { background: #F0F0F0; color: #666; font-size: 12px; font-weight: 600; border-radius: 100px; padding: 2px 9px; }
+
+  /* ── Needs Attention Table ── */
+  .attn-table { width: 100%; border-collapse: collapse; }
+  .attn-table th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #AAA; padding: 10px 16px; border-bottom: 1px solid #F0F0F0; }
+  .attn-table td { padding: 12px 16px; border-bottom: 1px solid #F5F5F5; font-size: 14px; vertical-align: middle; }
+  .attn-table tr:last-child td { border-bottom: none; }
+  .attn-table tr:hover td { background: #FAFAFA; }
+
+  .q-badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .05em; }
+  .prio-badge { display: inline-block; padding: 2px 9px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+  .prio-highest { background: rgba(218,41,28,.1); color: #DA291C; }
+  .prio-high    { background: rgba(217,119,6,.1);  color: #D97706; }
+  .prio-medium  { background: rgba(0,0,0,.06);      color: #777; }
+  .key-link { font-weight: 700; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; color: #1A1A1A; text-decoration: none; }
+  .key-link:hover { color: #86BC25; }
+  .summary-text { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; }
+  .arrow-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px; border: 1px solid #E6E6E6;
+    color: #AAA; text-decoration: none; font-size: 14px; transition: all .12s;
+  }
+  .arrow-btn:hover { border-color: #86BC25; color: #86BC25; background: rgba(134,188,37,.06); }
+
+  /* ── Activity ── */
+  .activity-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #F5F5F5; }
+  .activity-row:last-child { border-bottom: none; }
+  .act-indicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .act-action { font-size: 14px; font-weight: 600; }
+  .act-msg { font-size: 13px; color: #888; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+  .act-meta { font-size: 11px; color: #B8B8B8; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-logo">
+    <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.1em;">DELOITTE</span>
+    <span style="color:#444;font-size:14px;margin:0 4px;">|</span>
+    <span class="logo-text">Detect &amp; Respond</span>
+  </div>
+  <div class="header-right">
+    <span class="header-pill">PROD</span>
+    <span class="header-user">demo@deloitte.com &nbsp;·&nbsp; Sign out</span>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-label">Navigation</div>
+    <a class="sb-item active" href="#">
+      <!-- grid icon -->
+      <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+
+    <div class="sb-section">
+      <div class="sb-label">Work Queues</div>
+      <a class="sb-item" href="#">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        SOC Triage
+        <span class="sb-badge" style="background:#86BC25;">12</span>
+      </a>
+      <a class="sb-item" href="#">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Threat Intelligence
+        <span class="sb-badge" style="background:#F59E0B;">5</span>
+      </a>
+      <a class="sb-item" href="#">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Threat Hunt
+        <span class="sb-badge" style="background:#EF4444;">3</span>
+      </a>
+      <a class="sb-item" href="#">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Detection Eng
+        <span class="sb-badge" style="background:#6366F1;">7</span>
+      </a>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Settings</div>
+      <a class="sb-item" href="#">
+        <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+        Settings
+      </a>
+    </div>
+
+    <div class="sb-footer">
+      <div class="sb-footer-dot"><span class="dot"></span>PROD · us-east-1</div>
+      Tenant: Deloitte MXDR<br>Cyber Digital Analyst
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Page header -->
+    <div>
+      <div class="page-eyebrow">
+        <span class="page-eyebrow-bar"></span>
+        Operations Overview
+      </div>
+      <h1 class="page-title">Mission <em>Control</em></h1>
+      <p class="page-sub">27 incidents need attention across all pipelines · Last synced 2 min ago</p>
+    </div>
+
+    <!-- ── Queue Pulse ── -->
+    <div>
+      <div class="section-label">Queue Pulse</div>
+      <div class="queue-pulse-grid">
+
+        <!-- SOC Triage — green -->
+        <a class="qp-card" href="#" style="background: linear-gradient(160deg, rgba(134,188,37,0.1) 0%, #fff 65%);">
+          <span class="qp-accent" style="background:#86BC25;"></span>
+          <!-- watermark -->
+          <span class="qp-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#86BC25" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+          </span>
+          <div class="qp-top">
+            <span class="qp-eyebrow" style="color:#86BC25;">SOC L1 TRIAGE</span>
+            <span class="qp-icon-wrap" style="background:rgba(134,188,37,0.12);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#6FA01E" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            </span>
+          </div>
+          <div class="qp-count" style="color:#86BC25;">12</div>
+          <div class="qp-count-sub">for triage &nbsp;·&nbsp; 48 total</div>
+          <div class="qp-footer">
+            <span class="qp-sched">
+              <span class="sched-dot sched-on"></span>
+              <span style="color:#86BC25;">Active</span>
+            </span>
+            <span class="qp-link" style="color:#86BC25;">Workbench →</span>
+          </div>
+        </a>
+
+        <!-- Threat Intel — amber -->
+        <a class="qp-card" href="#" style="background: linear-gradient(160deg, rgba(245,158,11,0.1) 0%, #fff 65%);">
+          <span class="qp-accent" style="background:#F59E0B;"></span>
+          <span class="qp-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          <div class="qp-top">
+            <span class="qp-eyebrow" style="color:#F59E0B;">THREAT INTELLIGENCE</span>
+            <span class="qp-icon-wrap" style="background:rgba(245,158,11,0.12);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+          </div>
+          <div class="qp-count" style="color:#F59E0B;">5</div>
+          <div class="qp-count-sub">for triage &nbsp;·&nbsp; 22 total</div>
+          <div class="qp-footer">
+            <span class="qp-sched">
+              <span class="sched-dot sched-off"></span>
+              <span style="color:#AAA;">Inactive</span>
+            </span>
+            <span class="qp-link" style="color:#F59E0B;">Workbench →</span>
+          </div>
+        </a>
+
+        <!-- Threat Hunt — red -->
+        <a class="qp-card" href="#" style="background: linear-gradient(160deg, rgba(239,68,68,0.1) 0%, #fff 65%);">
+          <span class="qp-accent" style="background:#EF4444;"></span>
+          <span class="qp-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <div class="qp-top">
+            <span class="qp-eyebrow" style="color:#EF4444;">THREAT HUNTING</span>
+            <span class="qp-icon-wrap" style="background:rgba(239,68,68,0.12);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+          </div>
+          <div class="qp-count" style="color:#EF4444;">3</div>
+          <div class="qp-count-sub">for triage &nbsp;·&nbsp; 9 total</div>
+          <div class="qp-footer">
+            <span class="qp-sched">
+              <span class="sched-dot sched-on"></span>
+              <span style="color:#86BC25;">Active</span>
+            </span>
+            <span class="qp-link" style="color:#EF4444;">Workbench →</span>
+          </div>
+        </a>
+
+        <!-- Detection Eng — indigo -->
+        <a class="qp-card" href="#" style="background: linear-gradient(160deg, rgba(99,102,241,0.1) 0%, #fff 65%);">
+          <span class="qp-accent" style="background:#6366F1;"></span>
+          <span class="qp-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </span>
+          <div class="qp-top">
+            <span class="qp-eyebrow" style="color:#6366F1;">DETECTION ENGINEERING</span>
+            <span class="qp-icon-wrap" style="background:rgba(99,102,241,0.12);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2.2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </span>
+          </div>
+          <div class="qp-count" style="color:#6366F1;">7</div>
+          <div class="qp-count-sub">for triage &nbsp;·&nbsp; 31 total</div>
+          <div class="qp-footer">
+            <span class="qp-sched">
+              <span class="sched-dot sched-off"></span>
+              <span style="color:#AAA;">Inactive</span>
+            </span>
+            <span class="qp-link" style="color:#6366F1;">Workbench →</span>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ── Global Stats ── -->
+    <div>
+      <div class="section-label">Global Stats</div>
+      <div class="stat-grid">
+
+        <!-- Total -->
+        <div class="stat-card" style="background: linear-gradient(160deg, rgba(26,26,26,0.05) 0%, #fff 65%);">
+          <span class="stat-accent" style="background:#1A1A1A;"></span>
+          <span class="stat-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </span>
+          <div class="stat-top">
+            <span class="stat-label">TOTAL INCIDENTS</span>
+            <span class="stat-icon-wrap" style="background:rgba(0,0,0,0.06);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </span>
+          </div>
+          <div class="stat-value" style="color:#1A1A1A; font-weight:600;">110</div>
+          <div class="stat-sub">across all queues</div>
+        </div>
+
+        <!-- For Triage -->
+        <div class="stat-card" style="background: linear-gradient(160deg, rgba(239,68,68,0.08) 0%, #fff 65%);">
+          <span class="stat-accent" style="background:#EF4444;"></span>
+          <span class="stat-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <div class="stat-top">
+            <span class="stat-label">FOR TRIAGE</span>
+            <span class="stat-icon-wrap" style="background:rgba(239,68,68,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+          </div>
+          <div class="stat-value" style="color:#EF4444;">27</div>
+          <div class="stat-sub">awaiting attention</div>
+        </div>
+
+        <!-- In Progress -->
+        <div class="stat-card" style="background: linear-gradient(160deg, rgba(59,130,246,0.08) 0%, #fff 65%);">
+          <span class="stat-accent" style="background:#3B82F6;"></span>
+          <span class="stat-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          <div class="stat-top">
+            <span class="stat-label">IN PROGRESS</span>
+            <span class="stat-icon-wrap" style="background:rgba(59,130,246,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+          </div>
+          <div class="stat-value" style="color:#3B82F6;">8</div>
+          <div class="stat-sub">being triaged now</div>
+        </div>
+
+        <!-- Complete -->
+        <div class="stat-card" style="background: linear-gradient(160deg, rgba(34,197,94,0.08) 0%, #fff 65%);">
+          <span class="stat-accent" style="background:#22C55E;"></span>
+          <span class="stat-watermark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="1.2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </span>
+          <div class="stat-top">
+            <span class="stat-label">COMPLETE</span>
+            <span class="stat-icon-wrap" style="background:rgba(34,197,94,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </span>
+          </div>
+          <div class="stat-value" style="color:#22C55E;">75</div>
+          <div class="stat-sub">68% throughput rate</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Needs Attention + Activity ── -->
+    <div class="two-col">
+
+      <!-- Needs Attention -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Needs Attention
+          </span>
+          <span class="panel-badge">27 For Triage</span>
+        </div>
+        <table class="attn-table">
+          <thead>
+            <tr>
+              <th>Queue</th>
+              <th>Key</th>
+              <th>Summary</th>
+              <th>Priority</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="q-badge" style="background:#86BC25; color:#fff;">SOC</span></td>
+              <td><a class="key-link" href="#">MXDR-3142</a></td>
+              <td><span class="summary-text">Suspicious lateral movement on endpoint WIN-PRD-042</span></td>
+              <td><span class="prio-badge prio-highest">Highest</span></td>
+              <td><a class="arrow-btn" href="#">→</a></td>
+            </tr>
+            <tr>
+              <td><span class="q-badge" style="background:#86BC25; color:#fff;">SOC</span></td>
+              <td><a class="key-link" href="#">MXDR-3139</a></td>
+              <td><span class="summary-text">Ransomware indicators found in memory dump — high confidence</span></td>
+              <td><span class="prio-badge prio-highest">Highest</span></td>
+              <td><a class="arrow-btn" href="#">→</a></td>
+            </tr>
+            <tr>
+              <td><span class="q-badge" style="background:#F59E0B; color:#fff;">TI</span></td>
+              <td><a class="key-link" href="#">TI-0042</a></td>
+              <td><span class="summary-text">Known C2 IP 185.220.101.x observed in proxy logs</span></td>
+              <td><span class="prio-badge prio-high">High</span></td>
+              <td><a class="arrow-btn" href="#">→</a></td>
+            </tr>
+            <tr>
+              <td><span class="q-badge" style="background:#86BC25; color:#fff;">SOC</span></td>
+              <td><a class="key-link" href="#">MXDR-3135</a></td>
+              <td><span class="summary-text">Credential stuffing — 400 failed Azure AD logins in 3 min</span></td>
+              <td><span class="prio-badge prio-high">High</span></td>
+              <td><a class="arrow-btn" href="#">→</a></td>
+            </tr>
+            <tr>
+              <td><span class="q-badge" style="background:#6366F1; color:#fff;">DE</span></td>
+              <td><a class="key-link" href="#">DE-0007</a></td>
+              <td><span class="summary-text">False positive spike on sigma rule — 92 alerts suppressed</span></td>
+              <td><span class="prio-badge prio-high">High</span></td>
+              <td><a class="arrow-btn" href="#">→</a></td>
+            </tr>
+            <tr>
+              <td><span class="q-badge" style="background:#EF4444; color:#fff;">TH</span></td>
+              <td><a class="key-link" href="#">TH-0003</a></td>
+              <td><span class="summary-text">Insider threat hypothesis — privileged access UDM sweep</span></td>
+              <td><span class="prio-badge prio-medium">Medium</span></td>
+              <td><a class="arrow-btn" href="#">→</a></td>
+            </tr>
+            <tr>
+              <td><span class="q-badge" style="background:#F59E0B; color:#fff;">TI</span></td>
+              <td><a class="key-link" href="#">TI-0041</a></td>
+              <td><span class="summary-text">New APT29 TTPs — mapping to MITRE ATT&amp;CK T1078</span></td>
+              <td><span class="prio-badge prio-medium">Medium</span></td>
+              <td><a class="arrow-btn" href="#">→</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#86BC25" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Recent Activity
+          </span>
+          <span class="panel-badge" style="background:rgba(134,188,37,.12);color:#6FA01E;">Live</span>
+        </div>
+        <div>
+          <div class="activity-row">
+            <span class="act-indicator" style="background:#86BC25;box-shadow:0 0 0 3px rgba(134,188,37,.15);"></span>
+            <div>
+              <div class="act-action">Triage Complete</div>
+              <div class="act-msg">MXDR-3140 — True Positive</div>
+              <div class="act-meta">2 min ago · SOC Triage</div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <span class="act-indicator" style="background:#F59E0B;"></span>
+            <div>
+              <div class="act-action">Issue Synced</div>
+              <div class="act-msg">TI-0042 imported from Jira</div>
+              <div class="act-meta">5 min ago · Threat Intel</div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <span class="act-indicator" style="background:#86BC25;"></span>
+            <div>
+              <div class="act-action">Jira Sync</div>
+              <div class="act-msg">4 new, 2 updated, 18 unchanged</div>
+              <div class="act-meta">8 min ago · SOC Triage</div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <span class="act-indicator" style="background:#6366F1;"></span>
+            <div>
+              <div class="act-action">Issue Synced</div>
+              <div class="act-msg">DE-0007 imported from Jira</div>
+              <div class="act-meta">12 min ago · Detection Eng</div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <span class="act-indicator" style="background:#86BC25;"></span>
+            <div>
+              <div class="act-action">Posted to Jira</div>
+              <div class="act-msg">MXDR-3138 triage result posted</div>
+              <div class="act-meta">15 min ago · SOC Triage</div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <span class="act-indicator" style="background:#EF4444;"></span>
+            <div>
+              <div class="act-action">Triage Complete</div>
+              <div class="act-msg">TH-0002 — Benign verdict</div>
+              <div class="act-meta">22 min ago · Threat Hunt</div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <span class="act-indicator" style="background:#F59E0B;"></span>
+            <div>
+              <div class="act-action">Queue Sync</div>
+              <div class="act-msg">3 new IOCs synced from feed</div>
+              <div class="act-meta">28 min ago · Threat Intel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
