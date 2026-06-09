@@ -30,6 +30,13 @@ class QueueSettingsPayload(BaseModel):
     agentId: str | None = None
 
 
+class AzureSettingsPayload(BaseModel):
+    clientId: str = ""
+    clientSecret: str = ""
+    tenantId: str = ""
+    enabled: bool = False
+
+
 class AppSettingsPayload(BaseModel):
     llmProvider: Literal["openai", "anthropic", "gemini"]
     # Legacy flat fields — kept as fallbacks if queues array is empty
@@ -42,4 +49,5 @@ class AppSettingsPayload(BaseModel):
     queues: list[QueueSettingsPayload] = []
     jira: JiraSettingsPayload
     kindo: KindoSettingsPayload
+    azure: AzureSettingsPayload = Field(default_factory=AzureSettingsPayload)
     updatedAt: datetime | None = None

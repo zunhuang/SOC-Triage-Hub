@@ -31,6 +31,29 @@ _AZURE_TOKEN_URL = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
 _GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me"
 
 
+async def _get_azure_config(db: AsyncIOMotorDatabase) -> dict | None:
+    """Return Azure OAuth credentials from DB settings (if enabled) or env vars."""
+    from app.services.settings_service import get_settings as _get_settings
+    try:
+        app_settings = await _get_settings(db)
+        azure = app_settings.get("azure", {})
+        if azure.get("enabled") and azure.get("clientId") and azure.get("clientSecret") and azure.get("tenantId"):
+            return {
+                "client_id": azure["clientId"],
+                "client_secret": azure["clientSecret"],
+                "tenant_id": azure["tenantId"],
+            }
+    except Exception:
+        pass
+    if settings.AZURE_ENABLED:
+        return {
+            "client_id": settings.AZURE_CLIENT_ID,
+            "client_secret": settings.AZURE_CLIENT_SECRET,
+            "tenant_id": settings.AZURE_TENANT_ID,
+        }
+    return None
+
+
 def _serialize_user(user: dict) -> dict:
     """Serialize a raw MongoDB user doc to a JSON-safe dict with 'id' key."""
     doc = serialize(user)
@@ -122,11 +145,19 @@ async def get_me(current_user: dict = Depends(get_current_active_user)) -> dict:
     return _build_user_response(current_user)
 
 
+@router.get("/api/auth/providers")
+async def get_providers(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
+    """Public — returns which SSO providers are currently enabled."""
+    azure_cfg = await _get_azure_config(db)
+    return {"azure": azure_cfg is not None}
+
+
 # ── Azure AD SSO ──────────────────────────────────────────────────────────────
 
 @router.get("/api/auth/azure/login")
-async def azure_login(request: Request) -> RedirectResponse:
-    if not settings.AZURE_ENABLED:
+async def azure_login(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)) -> RedirectResponse:
+    azure_cfg = await _get_azure_config(db)
+    if not azure_cfg:
         raise AppError("Azure AD SSO is not configured", "sso_not_configured", status_code=400)
 
     state = secrets.token_urlsafe(32)
@@ -134,14 +165,14 @@ async def azure_login(request: Request) -> RedirectResponse:
     state_value = f"{state}|{next_path}"
 
     params = {
-        "client_id": settings.AZURE_CLIENT_ID,
+        "client_id": azure_cfg["client_id"],
         "response_type": "code",
         "redirect_uri": f"{_backend_base()}/api/auth/azure/callback",
         "response_mode": "query",
         "scope": "openid profile email User.Read",
         "state": state_value,
     }
-    authorize_url = _AZURE_AUTHORIZE_URL.format(tenant=settings.AZURE_TENANT_ID)
+    authorize_url = _AZURE_AUTHORIZE_URL.format(tenant=azure_cfg["tenant_id"])
     redirect = RedirectResponse(url=f"{authorize_url}?{urlencode(params)}")
     redirect.set_cookie(
         key="oauth_state",
@@ -159,7 +190,8 @@ async def azure_callback(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> RedirectResponse:
-    if not settings.AZURE_ENABLED:
+    azure_cfg = await _get_azure_config(db)
+    if not azure_cfg:
         raise AppError("Azure AD SSO is not configured", "sso_not_configured", status_code=400)
 
     code = request.query_params.get("code")
@@ -179,13 +211,13 @@ async def azure_callback(
     if not code:
         raise AppError("Missing authorization code", "sso_error", status_code=400)
 
-    token_url = _AZURE_TOKEN_URL.format(tenant=settings.AZURE_TENANT_ID)
+    token_url = _AZURE_TOKEN_URL.format(tenant=azure_cfg["tenant_id"])
     async with httpx.AsyncClient(verify=False) as client:
         token_resp = await client.post(
             token_url,
             data={
-                "client_id": settings.AZURE_CLIENT_ID,
-                "client_secret": settings.AZURE_CLIENT_SECRET,
+                "client_id": azure_cfg["client_id"],
+                "client_secret": azure_cfg["client_secret"],
                 "code": code,
                 "redirect_uri": f"{_backend_base()}/api/auth/azure/callback",
                 "grant_type": "authorization_code",

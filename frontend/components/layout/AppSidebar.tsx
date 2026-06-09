@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, Settings, AlertTriangle, Shield, Search, Code2, Users } from "lucide-react";
+import { LayoutDashboard, Settings, AlertTriangle, Shield, Search, Code2, Users, KeyRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useForTriageCount } from "@/hooks/use-incidents";
 import { useAuth } from "@/contexts/auth-context";
@@ -50,6 +50,7 @@ export function AppSidebar() {
   const isDashboard = pathname === "/" || pathname === "/dashboard";
   const isSettings = pathname === "/settings" || pathname.startsWith("/settings/");
   const isUsers = pathname === "/settings/users";
+  const isSSO = pathname === "/settings/sso";
 
   return (
     <aside className="app-sidebar flex w-60 shrink-0 flex-col bg-[#282728] text-white">
@@ -109,6 +110,19 @@ export function AppSidebar() {
           >
             <Users className={`size-[18px] ${isUsers ? "text-[#86BC25]" : "text-[#8C8C8C]"}`} />
             <span>Users</span>
+          </Link>
+        )}
+        {isAdmin && (
+          <Link
+            href="/settings/sso"
+            className={`flex items-center gap-3 border-l-[3px] px-6 py-[11px] text-sm transition-all ${
+              isSSO
+                ? "border-[#86BC25] bg-[rgba(134,188,37,0.10)] font-semibold text-white"
+                : "border-transparent text-[#C8C8C8] hover:bg-white/[0.04] hover:text-white"
+            }`}
+          >
+            <KeyRound className={`size-[18px] ${isSSO ? "text-[#86BC25]" : "text-[#8C8C8C]"}`} />
+            <span>SSO</span>
           </Link>
         )}
       </nav>

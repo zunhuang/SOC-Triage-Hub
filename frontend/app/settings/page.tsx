@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const pages = [
   { href: "/settings/agents", title: "Kindo Agents", description: "Enable and choose triage agents" },
   { href: "/settings/jira", title: "Jira Data Center", description: "Configure instance, JQL, and polling" },
-  { href: "/settings/general", title: "General", description: "LLM provider and runtime settings" }
+  { href: "/settings/general", title: "General", description: "LLM provider and runtime settings" },
+  { href: "/settings/sso", title: "Single Sign-On", description: "Azure AD / Microsoft Entra ID SSO" },
 ];
 
 export default function SettingsPage() {

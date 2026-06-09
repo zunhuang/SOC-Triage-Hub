@@ -11,8 +11,6 @@ import { Separator } from "@/components/ui/separator";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
-const AZURE_ENABLED = process.env.NEXT_PUBLIC_AZURE_ENABLED === "true";
-
 export default function LoginPage() {
   return (
     <Suspense>
@@ -31,12 +29,21 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [azureEnabled, setAzureEnabled] = useState(false);
 
   useEffect(() => {
     if (!isLoading && user) {
       router.replace(nextPath);
     }
   }, [isLoading, user, nextPath, router]);
+
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+    fetch(`${base}/api/auth/providers`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setAzureEnabled(data?.azure === true))
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,7 +90,7 @@ function LoginForm() {
             <p className="text-sm text-muted-foreground">Enter your credentials to access the platform.</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {AZURE_ENABLED && (
+            {azureEnabled && (
               <>
                 <Button
                   type="button"

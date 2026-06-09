@@ -22,6 +22,13 @@ export interface KindoSettings {
   apiKey: string;
 }
 
+export interface AzureSettings {
+  clientId: string;
+  clientSecret: string;
+  tenantId: string;
+  enabled: boolean;
+}
+
 export interface LlmSettings {
   provider: "openai" | "anthropic" | "gemini";
 }
@@ -39,6 +46,7 @@ export interface AppSettings {
   queues: QueueSettings[];
   jira: JiraSettings;
   kindo: KindoSettings;
+  azure: AzureSettings;
   updatedAt: string;
 }
 

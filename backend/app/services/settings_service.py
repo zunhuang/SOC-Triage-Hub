@@ -25,6 +25,12 @@ DEFAULT_SETTINGS = {
         "inferenceUrl": str(settings.KINDO_INFERENCE_URL).rstrip("/"),
         "apiKey": settings.KINDO_API_KEY,
     },
+    "azure": {
+        "clientId": settings.AZURE_CLIENT_ID,
+        "clientSecret": settings.AZURE_CLIENT_SECRET,
+        "tenantId": settings.AZURE_TENANT_ID,
+        "enabled": settings.AZURE_ENABLED,
+    },
 }
 
 
@@ -37,7 +43,7 @@ async def get_settings(db: AsyncIOMotorDatabase) -> dict:
             if key not in merged:
                 merged[key] = value
 
-        for nested_key in ("jira", "kindo"):
+        for nested_key in ("jira", "kindo", "azure"):
             current_nested = merged.get(nested_key, {})
             merged_nested = {**DEFAULT_SETTINGS[nested_key], **current_nested}
             merged[nested_key] = merged_nested
