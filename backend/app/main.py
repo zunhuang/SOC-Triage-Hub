@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pymongo import ASCENDING
+from pymongo import ASCENDING, TEXT
 
 from app.core.config import settings
 from app.core.errors import AppError
@@ -39,6 +39,18 @@ async def ensure_core_collections() -> None:
     await db.incidents.create_index([("triageStatus", ASCENDING)])
     await db.incidents.create_index([("priorityRank", ASCENDING), ("createdAt", ASCENDING)])
     await db.incidents.create_index([("queueType", ASCENDING)])
+    # Standalone date indexes for sort-by-date queries and date-range filters.
+    await db.incidents.create_index([("createdAt", ASCENDING)])
+    await db.incidents.create_index([("updatedAt", ASCENDING)])
+    # Compound index covering the most common list-incidents query shape.
+    await db.incidents.create_index(
+        [("queueType", ASCENDING), ("triageStatus", ASCENDING), ("priorityRank", ASCENDING)]
+    )
+    # Text index replaces slow per-field $regex scans on search queries.
+    await db.incidents.create_index(
+        [("summary", TEXT), ("description", TEXT), ("jiraKey", TEXT)],
+        name="incidents_text_search",
+    )
     await db.agents.create_index([("kindoAgentId", ASCENDING)], unique=True)
     await db.triage_runs.create_index([("kindoRunId", ASCENDING)], unique=True)
     await db.activity_feed.create_index([("timestamp", ASCENDING)])
