@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = Field(default="admin@deloitte.com")
     ADMIN_PASSWORD: str = Field(default="")
 
+    # Optional Redis cache (in-memory fallback used when REDIS_URL is not set)
+    REDIS_URL: str = Field(default="")
+
     # Azure AD (Entra ID) SSO
     AZURE_CLIENT_ID: str = Field(default="")
     AZURE_CLIENT_SECRET: str = Field(default="")

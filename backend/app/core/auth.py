@@ -2,10 +2,13 @@
 from fastapi import Depends, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.cache import cache
 from app.core.errors import AppError
 from app.db.mongo import get_db
 from app.utils.auth import decode_token
 from app.utils.serialization import serialize
+
+_USER_CACHE_TTL = 300  # 5 minutes
 
 
 async def get_current_user(
@@ -24,6 +27,11 @@ async def get_current_user(
     if not user_id:
         raise AppError("Invalid token payload", "invalid_token", status_code=401)
 
+    cache_key = f"user:{user_id}"
+    cached_user = await cache.get(cache_key)
+    if cached_user is not None:
+        return cached_user
+
     from bson import ObjectId
 
     try:
@@ -37,6 +45,7 @@ async def get_current_user(
 
     doc = serialize(user)
     doc["id"] = doc.pop("_id")
+    await cache.set(cache_key, doc, ttl_seconds=_USER_CACHE_TTL)
     return doc
 
 

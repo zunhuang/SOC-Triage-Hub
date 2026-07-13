@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.cache import cache
 from app.core.config import settings
 
 DEFAULT_SETTINGS = {
@@ -33,8 +34,19 @@ DEFAULT_SETTINGS = {
     },
 }
 
+_SETTINGS_CACHE_KEY = "app_settings:singleton"
+_SETTINGS_TTL = 30  # seconds
+
+
+def _strip_mongo_fields(doc: dict) -> dict:
+    return {k: v for k, v in doc.items() if not k.startswith("_")}
+
 
 async def get_settings(db: AsyncIOMotorDatabase) -> dict:
+    cached = await cache.get(_SETTINGS_CACHE_KEY)
+    if cached is not None:
+        return cached
+
     current = await db.app_settings.find_one({"singleton": True})
     if current:
         merged = {**current}
@@ -54,15 +66,20 @@ async def get_settings(db: AsyncIOMotorDatabase) -> dict:
                 {"$set": {key: value for key, value in merged.items() if key != "_id"}},
             )
 
-        return merged
+        public = _strip_mongo_fields(merged)
+        await cache.set(_SETTINGS_CACHE_KEY, public, ttl_seconds=_SETTINGS_TTL)
+        return public
 
     seed = {**DEFAULT_SETTINGS, "singleton": True, "updatedAt": datetime.now(timezone.utc)}
     await db.app_settings.insert_one(seed)
-    return seed
+    public = _strip_mongo_fields(seed)
+    await cache.set(_SETTINGS_CACHE_KEY, public, ttl_seconds=_SETTINGS_TTL)
+    return public
 
 
 async def upsert_settings(db: AsyncIOMotorDatabase, payload: dict) -> dict:
     payload["singleton"] = True
     payload["updatedAt"] = datetime.now(timezone.utc)
     await db.app_settings.update_one({"singleton": True}, {"$set": payload}, upsert=True)
+    await cache.delete(_SETTINGS_CACHE_KEY)
     return await get_settings(db)
