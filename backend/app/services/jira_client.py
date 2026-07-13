@@ -4,9 +4,18 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.errors import ExternalServiceError
+
+# Retry transient network errors up to 3 times: 1s → 2s → 4s backoff.
+_jira_retry = retry(
+    retry=retry_if_exception_type(httpx.HTTPError),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    reraise=True,
+)
 
 
 class JiraClient:
@@ -73,16 +82,18 @@ class JiraClient:
     async def fetch_issues(self, *, page_size: int = 100) -> list[dict[str, Any]]:
         """Fetch all matching issues using cursor-based pagination.
 
-        Jira's /search endpoint returns at most `maxResults` issues per call.
-        We loop with startAt until the page is smaller than page_size, collecting
-        every issue rather than silently dropping anything past the first page.
+        Loops with startAt until a partial page signals exhaustion, so no issues
+        beyond the first 100 are silently dropped. Each page request retries up to
+        3 times on transient network errors before propagating as ExternalServiceError.
         """
         fields = "project,summary,status,priority,assignee,description,customfield_17701"
         all_issues: list[dict[str, Any]] = []
         start_at = 0
 
         async with httpx.AsyncClient(timeout=30.0, verify=True) as client:
-            while True:
+
+            @_jira_retry
+            async def _fetch_page(start: int) -> list[dict[str, Any]]:
                 try:
                     response = await client.get(
                         f"{self.base_url}/rest/api/2/search",
@@ -90,7 +101,7 @@ class JiraClient:
                             "jql": self.jql,
                             "fields": fields,
                             "maxResults": str(page_size),
-                            "startAt": str(start_at),
+                            "startAt": str(start),
                         },
                         auth=httpx.BasicAuth(self.username, self.password),
                     )
@@ -108,11 +119,11 @@ class JiraClient:
                         details={"status": response.status_code, "body": response.text[:500]},
                     )
 
-                payload = response.json()
-                page = payload.get("issues", [])
-                all_issues.extend(page)
+                return response.json().get("issues", [])
 
-                # Stop when this page is smaller than page_size — no more results.
+            while True:
+                page = await _fetch_page(start_at)
+                all_issues.extend(page)
                 if len(page) < page_size:
                     break
                 start_at += len(page)
@@ -120,25 +131,29 @@ class JiraClient:
         return all_issues
 
     async def add_comment(self, issue_key: str, body: str) -> dict[str, Any]:
-        try:
-            async with httpx.AsyncClient(timeout=15.0, verify=True) as client:
-                response = await client.post(
-                    f"{self.base_url}/rest/api/2/issue/{issue_key}/comment",
-                    auth=httpx.BasicAuth(self.username, self.password),
-                    json={"body": body},
+        @_jira_retry
+        async def _post() -> dict[str, Any]:
+            try:
+                async with httpx.AsyncClient(timeout=15.0, verify=True) as client:
+                    response = await client.post(
+                        f"{self.base_url}/rest/api/2/issue/{issue_key}/comment",
+                        auth=httpx.BasicAuth(self.username, self.password),
+                        json={"body": body},
+                    )
+            except httpx.HTTPError as exc:
+                raise ExternalServiceError(
+                    "Jira is unreachable",
+                    code="jira_unreachable",
+                    details={"reason": str(exc)},
+                ) from exc
+
+            if response.status_code >= 400:
+                raise ExternalServiceError(
+                    "Failed to post comment to Jira",
+                    code="jira_comment_failed",
+                    details={"status": response.status_code, "body": response.text[:500]},
                 )
-        except httpx.HTTPError as exc:
-            raise ExternalServiceError(
-                "Jira is unreachable",
-                code="jira_unreachable",
-                details={"reason": str(exc)},
-            ) from exc
 
-        if response.status_code >= 400:
-            raise ExternalServiceError(
-                "Failed to post comment to Jira",
-                code="jira_comment_failed",
-                details={"status": response.status_code, "body": response.text[:500]},
-            )
+            return response.json()
 
-        return response.json()
+        return await _post()
