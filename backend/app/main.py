@@ -1,6 +1,7 @@
 """Detect and Respond FastAPI middleware service."""
 from __future__ import annotations
 
+import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -124,6 +125,7 @@ async def lifespan(_: FastAPI):
                 id=f"queue-sync-{qt.replace('_', '-')}",
                 args=[qt],
                 replace_existing=True,
+                max_instances=1,  # prevent overlapping runs if a sync takes longer than the interval
             )
             any_enabled = True
         if any_enabled:
@@ -141,6 +143,7 @@ async def lifespan(_: FastAPI):
                 minutes=poll_minutes,
                 id="jira-sync",
                 replace_existing=True,
+                max_instances=1,  # prevent overlapping runs if a sync takes longer than the interval
             )
             scheduler.start()
             log_json("info", "scheduler", "start", "Legacy scheduler started", intervalMinutes=poll_minutes)
@@ -179,7 +182,7 @@ async def app_error_handler(_: Request, error: AppError) -> JSONResponse:
 
 @app.exception_handler(Exception)
 async def generic_error_handler(_: Request, error: Exception) -> JSONResponse:
-    log_json("error", "api", "unhandled_exception", str(error))
+    log_json("error", "api", "unhandled_exception", str(error), traceback=traceback.format_exc())
     return JSONResponse(
         status_code=500,
         content={
