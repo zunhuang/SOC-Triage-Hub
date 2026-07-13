@@ -17,6 +17,14 @@ from app.services.kindo_client import KindoClient
 from app.services.settings_service import get_settings
 from app.utils.markdown_to_jira import md_to_jira
 
+# Cap simultaneous Kindo sessions — prevents event-loop saturation under bulk triage.
+_TRIAGE_SEMAPHORE = asyncio.Semaphore(10)
+
+# Registry of in-flight tasks keyed by incident_id string.
+# Prevents duplicate tasks for the same incident within one process and
+# gives us handles to drain at shutdown.
+_active_tasks: dict[str, asyncio.Task] = {}
+
 
 def _parse_json_payload(raw: Any) -> dict[str, Any]:
     if isinstance(raw, dict):
@@ -209,9 +217,26 @@ async def run_triage_for_incident(
     incident_id: str,
     agent_id_override: str | None = None,
 ) -> None:
-    incident = await db.incidents.find_one({"_id": ObjectId(incident_id)})
-    if not incident:
-        raise AppError(message="Incident not found", code="incident_not_found", status_code=404)
+    # Atomically claim the incident for triage.
+    # Returns the pre-update document only when the status was NOT already
+    # "Triage In Progress" or "Triage Complete", preventing duplicate runs.
+    incident = await db.incidents.find_one_and_update(
+        {
+            "_id": ObjectId(incident_id),
+            "triageStatus": {"$nin": ["Triage In Progress", "Triage Complete"]},
+        },
+        {
+            "$set": {
+                "triageStatus": "Triage In Progress",
+                "triageStartedAt": datetime.now(timezone.utc),
+                "updatedAtLocal": datetime.now(timezone.utc),
+            }
+        },
+        return_document=False,  # return pre-update doc so we have original field values
+    )
+    if incident is None:
+        # Not found OR already claimed by another task — bail silently.
+        return
 
     settings = await get_settings(db)
 
@@ -238,18 +263,12 @@ async def run_triage_for_incident(
             agent_id = active.get("kindoAgentId")
 
     if not agent_id:
+        # Roll back the status claim before raising.
+        await db.incidents.update_one(
+            {"_id": incident["_id"]},
+            {"$set": {"triageStatus": "For Triage", "updatedAtLocal": datetime.now(timezone.utc)}},
+        )
         raise AppError(message="No active triage agent configured", code="missing_triage_agent", status_code=400)
-
-    await db.incidents.update_one(
-        {"_id": incident["_id"]},
-        {
-            "$set": {
-                "triageStatus": "Triage In Progress",
-                "triageStartedAt": datetime.now(timezone.utc),
-                "updatedAtLocal": datetime.now(timezone.utc),
-            }
-        },
-    )
 
     client = KindoClient.from_settings(settings)
 
@@ -493,6 +512,15 @@ async def run_triage_for_incident(
             )
 
 
+async def _run_with_semaphore(incident_id: str, db: AsyncIOMotorDatabase, agent_id: str | None) -> None:
+    """Wrapper that acquires the concurrency semaphore and cleans up the task registry."""
+    async with _TRIAGE_SEMAPHORE:
+        try:
+            await run_triage_for_incident(db, incident_id, agent_id_override=agent_id)
+        finally:
+            _active_tasks.pop(incident_id, None)
+
+
 async def queue_triage(db: AsyncIOMotorDatabase, incident_ids: list[str]) -> int:
     return await queue_triage_with_agent(db, incident_ids, None)
 
@@ -504,9 +532,12 @@ async def queue_triage_with_agent(
 ) -> int:
     accepted = 0
     for incident_id in incident_ids:
-        incident = await db.incidents.find_one({"_id": ObjectId(incident_id)})
-        if incident is None:
+        # Skip if a task for this incident is already in flight (in-process guard).
+        # The DB-level atomic claim in run_triage_for_incident is the authoritative guard;
+        # this avoids needlessly queuing a semaphore slot for a known duplicate.
+        if incident_id in _active_tasks:
             continue
-        asyncio.create_task(run_triage_for_incident(db, incident_id, agent_id_override=agent_id))
+        task = asyncio.create_task(_run_with_semaphore(incident_id, db, agent_id))
+        _active_tasks[incident_id] = task
         accepted += 1
     return accepted
