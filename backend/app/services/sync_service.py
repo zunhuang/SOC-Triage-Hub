@@ -75,7 +75,7 @@ def map_jira_issue(raw: dict[str, Any]) -> dict[str, Any]:
 async def run_jira_sync(db: AsyncIOMotorDatabase) -> dict[str, int | list[str]]:
     runtime_settings = await get_settings(db)
     client = JiraClient.from_settings(runtime_settings)
-    issues = await client.fetch_issues(max_results=100)
+    issues = await client.fetch_issues(page_size=100)
 
     summary: dict[str, int | list[str]] = {
         "new": 0,
@@ -175,7 +175,7 @@ async def run_queue_sync(
         "jira": {**runtime_settings.get("jira", {}), "jql": jql},
     }
     client = JiraClient.from_settings(merged)
-    issues = await client.fetch_issues(max_results=100)
+    issues = await client.fetch_issues(page_size=100)
 
     summary: dict[str, int | list[str]] = {
         "new": 0,

@@ -25,6 +25,8 @@ DEFAULT_SETTINGS = {
         "tenantUrl": str(settings.KINDO_API_BASE_URL).rstrip("/"),
         "inferenceUrl": str(settings.KINDO_INFERENCE_URL).rstrip("/"),
         "apiKey": settings.KINDO_API_KEY,
+        "chatModel": settings.KINDO_CHAT_MODEL,
+        "runChatModel": settings.KINDO_RUN_CHAT_MODEL,
     },
     "azure": {
         "clientId": settings.AZURE_CLIENT_ID,

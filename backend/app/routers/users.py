@@ -89,6 +89,15 @@ async def patch_user(
     if not is_admin:
         updates = {k: v for k, v in updates.items() if k in ("first_name", "last_name")}
 
+    # new_password is admin-only; hash it and store as password_hash
+    if "new_password" in updates:
+        if not is_admin:
+            raise AppError("Not authorised", "forbidden", status_code=403)
+        updates["password_hash"] = get_password_hash(updates.pop("new_password"))
+        log_json("info", "users", "reset_password", "Admin reset user password", target=user_id)
+    else:
+        updates.pop("new_password", None)
+
     if not updates:
         user = await db.users.find_one({"_id": oid})
         return _user_out(user)

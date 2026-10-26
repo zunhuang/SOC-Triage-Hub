@@ -158,6 +158,12 @@ async def list_runs(limit: int = 20, db: AsyncIOMotorDatabase = Depends(get_db))
     return [serialize(run) async for run in cursor]
 
 
+@router.get("/models")
+async def list_models(db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
+    client = KindoClient.from_settings(await get_settings(db))
+    return {"models": await client.list_models()}
+
+
 @router.get("/runs/{run_id}")
 async def get_run(run_id: str, db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     run = await db.triage_runs.find_one({"kindoRunId": run_id})

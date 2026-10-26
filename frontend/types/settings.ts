@@ -20,6 +20,8 @@ export interface KindoSettings {
   tenantUrl: string;
   inferenceUrl: string;
   apiKey: string;
+  chatModel?: string;
+  runChatModel?: string;
 }
 
 export interface AzureSettings {

@@ -17,3 +17,4 @@ class UserPatchRequest(BaseModel):
     last_name: str | None = None
     role: Literal["admin", "analyst"] | None = None
     is_active: bool | None = None
+    new_password: str | None = None

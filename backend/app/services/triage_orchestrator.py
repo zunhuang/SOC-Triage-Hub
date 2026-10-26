@@ -71,18 +71,24 @@ _VERDICT_KEYWORDS: list[tuple[str, str]] = [
     ("true positive", "true_positive"),
     ("no action required", "benign_tp"),
     ("no immediate action", "benign_tp"),
-    ("escalate to l2", "needs_analyst"),
-    ("escalate to l3", "needs_analyst"),
-    ("escalate to analyst", "needs_analyst"),
-    ("escalate to tier", "needs_analyst"),
-    ("escalation recommended", "needs_analyst"),
-    ("requires analyst", "needs_analyst"),
-    ("needs analyst", "needs_analyst"),
-    ("further investigation", "needs_analyst"),
-    ("escalate", "needs_analyst"),
+    ("escalate to l2", "escalate_l2"),
+    ("escalate to l3", "escalate_l2"),
+    ("escalate to analyst", "escalate_l2"),
+    ("escalate to tier", "escalate_l2"),
+    ("escalation recommended", "escalate_l2"),
+    ("requires analyst", "escalate_l2"),
+    ("needs analyst", "escalate_l2"),
+    ("further investigation", "escalate_l2"),
+    ("escalate", "escalate_l2"),
     ("malicious", "true_positive"),
     ("benign", "benign_tp"),
 ]
+
+
+_VERDICT_LINE_PATTERNS = (
+    re.compile(r"\bverdict\b[\s*_]*:[\s*_]*(.+)$", re.IGNORECASE),
+    re.compile(r"^\s*\|\s*[*_]*verdict[*_]*\s*\|\s*([^|]+?)\s*\|", re.IGNORECASE),
+)
 
 
 def _extract_verdict(report_text: str) -> tuple[str | None, str | None]:
@@ -97,20 +103,31 @@ def _extract_verdict(report_text: str) -> tuple[str | None, str | None]:
     verdict: str | None = None
     raw_verdict_text: str | None = None
 
-    # 1. Look for an explicit "Verdict:" line — most reliable signal.
-    #    Handles: **Verdict: Escalate to L2**  /  Verdict: False Positive  /  **Final Verdict:** ...
-    m = re.search(
-        r"\bverdict\b[\s:*]+(.+?)[\s*]*$",
-        report_text,
-        re.IGNORECASE | re.MULTILINE,
-    )
-    if m:
-        raw_verdict_text = m.group(1).strip().strip("*").strip()
-        lower = raw_verdict_text.lower()
-        for keyword, verdict_value in _VERDICT_KEYWORDS:
-            if keyword in lower:
-                verdict = verdict_value
+    # 1. Look for an explicit verdict line — most reliable signal. Headings such as
+    #    "### 12. Verdict & Justification" have no value, so only lines that carry one count.
+    #    Handles: **Verdict: Escalate to L2**  /  ### Verdict: **False Positive**  /
+    #    | **Verdict** | **False Positive** |
+    first_candidate: str | None = None
+    for line in report_text.splitlines():
+        for pattern in _VERDICT_LINE_PATTERNS:
+            m = pattern.search(line)
+            if not m:
+                continue
+            label = m.group(1).strip(" *_#|`").strip()
+            if not label or len(label) > 80:
+                continue
+            first_candidate = first_candidate or label
+            lower = label.lower()
+            for keyword, verdict_value in _VERDICT_KEYWORDS:
+                if keyword in lower:
+                    verdict, raw_verdict_text = verdict_value, label
+                    break
+            if verdict:
                 break
+        if verdict:
+            break
+    if raw_verdict_text is None:
+        raw_verdict_text = first_candidate
 
     # 2. Fall back to full-report keyword scan if explicit section didn't yield a match
     if verdict is None:
@@ -218,12 +235,11 @@ async def run_triage_for_incident(
     agent_id_override: str | None = None,
 ) -> None:
     # Atomically claim the incident for triage.
-    # Returns the pre-update document only when the status was NOT already
-    # "Triage In Progress" or "Triage Complete", preventing duplicate runs.
+    # Only block if already in progress — completed incidents can be re-triaged.
     incident = await db.incidents.find_one_and_update(
         {
             "_id": ObjectId(incident_id),
-            "triageStatus": {"$nin": ["Triage In Progress", "Triage Complete"]},
+            "triageStatus": {"$nin": ["Triage In Progress"]},
         },
         {
             "$set": {
@@ -458,6 +474,8 @@ async def run_triage_for_incident(
                 "status": "completed",
                 "completedAt": datetime.now(timezone.utc),
                 "output": output,
+                # Lets CDA continue this run's Kindo conversation without another lookup.
+                "conversationId": run_result.get("conversationId"),
             }
         },
     )

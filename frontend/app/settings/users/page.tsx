@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { useUsers, createUser, patchUser, toggleUserActive } from "@/hooks/use-users";
+import { useUsers, createUser, patchUser, toggleUserActive, resetUserPassword } from "@/hooks/use-users";
 import { UserProfile } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -36,6 +36,7 @@ export default function UsersPage() {
   const { isAdmin, user: me } = useAuth();
   const { data, isLoading, mutate } = useUsers();
   const [showCreate, setShowCreate] = useState(false);
+  const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
   const [actionError, setActionError] = useState("");
 
   if (!isAdmin) {
@@ -133,6 +134,13 @@ export default function UsersPage() {
                               </Button>
                               <Button
                                 size="sm"
+                                variant="outline"
+                                onClick={() => setResetTarget(u)}
+                              >
+                                Reset Password
+                              </Button>
+                              <Button
+                                size="sm"
                                 variant={u.is_active ? "destructive" : "outline"}
                                 onClick={() => handleToggleActive(u)}
                               >
@@ -157,7 +165,99 @@ export default function UsersPage() {
         onClose={() => setShowCreate(false)}
         onCreated={() => { mutate(); setShowCreate(false); }}
       />
+      <ResetPasswordModal
+        user={resetTarget}
+        onClose={() => setResetTarget(null)}
+      />
     </div>
+  );
+}
+
+function ResetPasswordModal({
+  user,
+  onClose,
+}: {
+  user: UserProfile | null;
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  function handleClose() {
+    setPassword(""); setConfirm(""); setError(""); setSuccess(false);
+    onClose();
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (password !== confirm) { setError("Passwords do not match"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    setLoading(true);
+    try {
+      await resetUserPassword(user!.id, password);
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to reset password");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!user} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Reset Password</DialogTitle>
+        </DialogHeader>
+        {success ? (
+          <div className="space-y-4">
+            <p className="text-sm text-emerald-600">Password updated successfully for <strong>{user?.email}</strong>.</p>
+            <div className="flex justify-end">
+              <Button onClick={handleClose}>Close</Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Setting a new password for <strong>{user?.email}</strong>.
+            </p>
+            <label className="block text-sm font-medium">
+              New Password *
+              <Input
+                className="mt-1"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              Confirm Password *
+              <Input
+                className="mt-1"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </label>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
+              <Button type="submit" disabled={loading}>{loading ? "Saving…" : "Reset Password"}</Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

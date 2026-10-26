@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Open_Sans, JetBrains_Mono } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SessionGate } from "@/components/auth/SessionGate";
+import { CdaChatLauncher } from "@/components/incidents/cda/CdaChatLauncher";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </main>
             </div>
             <AppFooter />
+            <CdaChatLauncher />
           </div>
         </AuthProvider>
       </body>

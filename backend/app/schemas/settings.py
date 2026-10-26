@@ -18,6 +18,8 @@ class KindoSettingsPayload(BaseModel):
     tenantUrl: str
     inferenceUrl: str
     apiKey: str
+    chatModel: str = ""
+    runChatModel: str = ""
 
 
 class QueueSettingsPayload(BaseModel):

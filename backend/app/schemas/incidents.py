@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.utils.verdicts import Verdict
+
 
 class IncidentListQuery(BaseModel):
     page: int = Field(default=1, ge=1)
@@ -25,7 +27,7 @@ class IncidentPatchRequest(BaseModel):
     remediationSteps: list[dict] | None = None
     assignee: str | None = None
     analystAssessment: str | None = None
-    humanVerdict: str | None = None
+    humanVerdict: Verdict | None = None
     humanVerdictActor: str | None = None
     humanVerdictNote: str | None = None
 

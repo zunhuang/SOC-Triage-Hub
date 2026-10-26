@@ -292,6 +292,7 @@ async def delete_incident(incident_id: str, db: AsyncIOMotorDatabase = Depends(g
         raise NotFoundError("Incident not found", code="incident_not_found")
     await db.incidents.delete_one({"_id": object_id})
     await db.triage_runs.delete_many({"incidentId": object_id})
+    await db.chat_messages.delete_many({"incidentId": object_id})
     return {"deleted": True, "id": incident_id}
 
 

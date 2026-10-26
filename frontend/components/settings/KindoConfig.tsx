@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,8 +10,48 @@ import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api-client";
 import { useAppSettings } from "@/hooks/use-settings";
 
+function ModelSelect({
+  id,
+  label,
+  help,
+  value,
+  models
+}: {
+  id: string;
+  label: string;
+  help: string;
+  value: string;
+  models: string[];
+}) {
+  // Keep a saved value selectable even if the tenant's model list no longer includes it.
+  const options = value && !models.includes(value) ? [value, ...models] : models;
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={id}>{label}</Label>
+      <select
+        id={id}
+        name={id}
+        defaultValue={value}
+        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+      >
+        <option value="">Default</option>
+        {options.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+      <p className="text-xs text-muted-foreground">{help}</p>
+    </div>
+  );
+}
+
 export function KindoConfig() {
   const { data, mutate } = useAppSettings();
+  const { data: models } = useSWR<{ models: string[] }>("/api/kindo/models", (path: string) => apiClient.get(path), {
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
+  });
   const [status, setStatus] = useState("");
 
   if (!data) return null;
@@ -27,6 +68,8 @@ export function KindoConfig() {
         tenantUrl: String(formData.get("kindoTenantUrl") ?? "").trim(),
         inferenceUrl: String(formData.get("kindoInferenceUrl") ?? "").trim(),
         apiKey: apiKey || data.kindo.apiKey,
+        chatModel: String(formData.get("kindoChatModel") ?? "").trim(),
+        runChatModel: String(formData.get("kindoRunChatModel") ?? "").trim(),
       },
     };
 
@@ -90,6 +133,22 @@ export function KindoConfig() {
               API key sent via the <code>api-key</code> header when calling Kindo APIs.
             </p>
           </div>
+
+          <ModelSelect
+            id="kindoChatModel"
+            label="CDA Chat model"
+            help="Used by the floating CDA Chat (general assistant). Must be a Claude model."
+            value={data.kindo.chatModel ?? ""}
+            models={models?.models ?? []}
+          />
+
+          <ModelSelect
+            id="kindoRunChatModel"
+            label="Investigate Further model"
+            help="Used when continuing a triage run on a record. Any model on your tenant."
+            value={data.kindo.runChatModel ?? ""}
+            models={models?.models ?? []}
+          />
 
           <div className="md:col-span-2">
             <Button type="submit">Save Kindo Settings</Button>

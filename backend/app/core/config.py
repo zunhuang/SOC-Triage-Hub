@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     KINDO_API_KEY: str = Field(...)
     KINDO_API_BASE_URL: HttpUrl = Field(default="https://api.kindo.ai/v1")
     KINDO_INFERENCE_URL: HttpUrl = Field(default="https://llm.kindo.ai/v1")
+    # CDA Chat uses the Messages API (a Claude model ID); Investigate Further uses the Responses API (any model from /models).
+    KINDO_CHAT_MODEL: str = Field(default="claude-sonnet-4-6")
+    KINDO_RUN_CHAT_MODEL: str = Field(default="claude-sonnet-4-6")
 
     LLM_PROVIDER: str = Field(default="openai")
     OPENAI_API_KEY: str = Field(default="")

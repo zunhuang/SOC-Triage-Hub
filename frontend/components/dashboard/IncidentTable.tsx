@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
+import {
+  canInvestigateFurther,
+  InvestigateFurtherDrawer
+} from "@/components/incidents/cda/InvestigateFurtherDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +60,7 @@ export function IncidentTable({
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [launchStatus, setLaunchStatus] = useState<string>("");
   const [isLaunching, setIsLaunching] = useState(false);
+  const [cdaIncident, setCdaIncident] = useState<Incident | null>(null);
 
   const enabledAgents = useMemo(
     () => (agents ?? []).filter((agent) => agent.isActive && (agent.agentType === "workflow" || agent.agentType === "chatbot")),
@@ -130,6 +136,17 @@ export function IncidentTable({
                   <Button size="sm" onClick={() => openLaunchDialog(incident._id, incident.jiraKey)}>
                     Re-Triage
                   </Button>
+                  {canInvestigateFurther(incident) ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-[#86BC25] text-[#5A8217] hover:bg-[#F1F8E5]"
+                      onClick={() => setCdaIncident(incident)}
+                    >
+                      <Sparkles className="size-3.5" />
+                      Investigate Further
+                    </Button>
+                  ) : null}
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/incidents/${incident._id}`}>Open</Link>
                   </Button>
@@ -139,6 +156,10 @@ export function IncidentTable({
           ))}
         </TableBody>
       </Table>
+
+      {cdaIncident ? (
+        <InvestigateFurtherDrawer incident={cdaIncident} open onOpenChange={(open) => !open && setCdaIncident(null)} />
+      ) : null}
 
       <Dialog open={launchIncident !== null} onOpenChange={(open) => !open && setLaunchIncident(null)}>
         <DialogContent>

@@ -19,6 +19,7 @@ from app.routers import activity, cron, health, incidents, jira, kindo, settings
 from app.routers import queues as queues_router
 from app.routers import auth as auth_router
 from app.routers import users as users_router
+from app.routers import chat as chat_router
 from app.services.settings_service import get_settings as get_runtime_settings
 from app.services.sync_service import run_jira_sync, run_queue_sync
 from app.services.triage_orchestrator import queue_triage, queue_triage_with_agent
@@ -29,7 +30,7 @@ scheduler = AsyncIOScheduler()
 async def ensure_core_collections() -> None:
     db = get_db()
     existing = set(await db.list_collection_names())
-    required = {"incidents", "agents", "triage_runs", "app_settings", "activity_feed"}
+    required = {"incidents", "agents", "triage_runs", "app_settings", "activity_feed", "chat_messages"}
 
     for collection_name in required:
         if collection_name not in existing:
@@ -54,12 +55,17 @@ async def ensure_core_collections() -> None:
     await db.agents.create_index([("kindoAgentId", ASCENDING)], unique=True)
     await db.triage_runs.create_index([("kindoRunId", ASCENDING)], unique=True)
     await db.activity_feed.create_index([("timestamp", ASCENDING)])
+    await db.chat_messages.create_index([("incidentId", ASCENDING), ("mode", ASCENDING), ("createdAt", ASCENDING)])
 
     # Users collection
     if "users" not in existing:
         await db.create_collection("users")
     await db.users.create_index([("email", ASCENDING)], unique=True)
-    await db.users.create_index([("azure_oid", ASCENDING)], unique=True, sparse=True)
+    await db.users.create_index(
+        [("azure_oid", ASCENDING)],
+        unique=True,
+        partialFilterExpression={"azure_oid": {"$type": "string"}},
+    )
 
 
 async def _seed_admin() -> None:
@@ -209,6 +215,8 @@ app.include_router(auth_router.router)
 app.include_router(users_router.router)
 app.include_router(health.router)
 app.include_router(incidents.router)
+app.include_router(chat_router.incident_router)
+app.include_router(chat_router.general_router)
 app.include_router(kindo.router)
 app.include_router(settings_router.router)
 app.include_router(cron.router)

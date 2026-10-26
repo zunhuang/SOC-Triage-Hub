@@ -1,7 +1,10 @@
-"""One-time script to backfill verdict fields on existing triaged incidents."""
+"""Re-derive triageResults.verdict / verdictSummary from each stored report.
+
+Dry run by default; pass --apply to write. Human overrides (humanVerdict) are never touched.
+"""
 import asyncio
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -10,44 +13,39 @@ from app.core.config import settings
 from app.services.triage_orchestrator import _extract_verdict
 
 
-async def main():
+async def main(apply: bool) -> None:
     client = AsyncIOMotorClient(settings.MONGODB_URI, tls=True, tlsAllowInvalidCertificates=True)
     db = client[settings.MONGODB_DB_NAME]
 
-    cursor = db.incidents.find({
-        "triageResults.agentOutput": {"$exists": True, "$ne": ""},
-        "triageResults.verdict": {"$exists": False},
-    })
-
-    count = 0
-    updated = 0
-
+    scanned = changed = 0
+    cursor = db.incidents.find({"triageResults.agentOutput": {"$exists": True, "$ne": ""}})
     async for incident in cursor:
-        count += 1
         jira_key = incident.get("jiraKey", "?")
-        raw_text = incident.get("triageResults", {}).get("agentOutput", "")
-        if not raw_text or raw_text.startswith("Triage failed"):
-            print(f"  [{jira_key}] skipping — no valid output")
+        results = incident.get("triageResults", {})
+        raw_text = results.get("agentOutput", "")
+        if raw_text.startswith("Triage failed"):
+            continue
+        scanned += 1
+
+        verdict, summary = _extract_verdict(raw_text)
+        if verdict is None:
+            print(f"  [{jira_key}] no verdict found, left as {results.get('verdict')!r}")
+            continue
+        if verdict == results.get("verdict") and summary == results.get("verdictSummary"):
             continue
 
-        verdict, verdict_summary = _extract_verdict(raw_text)
-
-        if verdict:
+        changed += 1
+        print(f"  [{jira_key}] {results.get('verdict')!r} -> {verdict!r} ({summary})")
+        if apply:
             await db.incidents.update_one(
                 {"_id": incident["_id"]},
-                {"$set": {
-                    "triageResults.verdict": verdict,
-                    "triageResults.verdictSummary": verdict_summary,
-                }},
+                {"$set": {"triageResults.verdict": verdict, "triageResults.verdictSummary": summary}},
             )
-            updated += 1
-            print(f"  [{jira_key}] {verdict} — {verdict_summary[:120] if verdict_summary else '(no headline)'}")
-        else:
-            print(f"  [{jira_key}] no verdict keyword found, skipping")
 
-    print(f"\nDone. Scanned {count} incidents, updated {updated}.")
+    mode = "Updated" if apply else "Would update (dry run, pass --apply)"
+    print(f"\nScanned {scanned}. {mode}: {changed}.")
     client.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main("--apply" in sys.argv))

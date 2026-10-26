@@ -37,6 +37,10 @@ export async function patchUser(
   return apiClient.patch<UserProfile>(`/api/users/${id}`, body);
 }
 
+export async function resetUserPassword(id: string, newPassword: string): Promise<UserProfile> {
+  return apiClient.patch<UserProfile>(`/api/users/${id}`, { new_password: newPassword });
+}
+
 export async function toggleUserActive(id: string): Promise<{ message: string }> {
   return apiClient.delete<{ message: string }>(`/api/users/${id}`);
 }

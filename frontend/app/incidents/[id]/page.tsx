@@ -4,8 +4,12 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Check, ChevronRight, Clock, RefreshCcw, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Clock, RefreshCcw, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { ActivityTimeline } from "@/components/incidents/ActivityTimeline";
+import {
+  canInvestigateFurther,
+  InvestigateFurtherDrawer
+} from "@/components/incidents/cda/InvestigateFurtherDrawer";
 import { IncidentDetail } from "@/components/incidents/IncidentDetail";
 import { TriagePanel } from "@/components/incidents/TriagePanel";
 import { TriageStatusBadge } from "@/components/dashboard/TriageStatusBadge";
@@ -13,6 +17,7 @@ import apiClient from "@/lib/api-client";
 import { deleteIncident, triggerTriage, useIncident } from "@/hooks/use-incidents";
 import { useKindoAgents } from "@/hooks/use-settings";
 import { canonicalizeTriageStatus } from "@/lib/triage-status";
+import { VERDICT_LABELS } from "@/lib/verdicts";
 
 const priorityPillStyle: Record<string, string> = {
   Highest: "border border-[rgba(218,41,28,0.2)] bg-[#FDEEEC] text-[#8B0F08]",
@@ -63,13 +68,7 @@ const verdictConfig: Record<string, { borderColor: string; bgGradient: string; i
   },
 };
 
-const verdictLabel: Record<string, string> = {
-  false_positive: "False Positive",
-  benign_tp: "Benign True Positive",
-  true_positive: "True Positive",
-  needs_analyst: "Needs Analyst Review",
-  inconclusive: "Inconclusive",
-};
+const verdictLabel = VERDICT_LABELS;
 
 export default function IncidentDetailPage() {
   const params = useParams<{ id: string }>();
@@ -82,6 +81,7 @@ export default function IncidentDetailPage() {
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [launchStatus, setLaunchStatus] = useState("");
   const [isLaunching, setIsLaunching] = useState(false);
+  const [cdaOpen, setCdaOpen] = useState(false);
   const [verdictOverrideOpen, setVerdictOverrideOpen] = useState(false);
   const [verdictOverrideValue, setVerdictOverrideValue] = useState("");
   const [verdictOverrideNote, setVerdictOverrideNote] = useState("");
@@ -226,7 +226,7 @@ export default function IncidentDetailPage() {
         </div>
 
         {/* Action cluster */}
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             className="inline-flex items-center gap-2 rounded-full border border-[var(--dl-border)] bg-white px-3.5 py-[7px] text-[12px] transition-colors hover:border-[var(--dl-border-strong)]"
             onClick={() => {
@@ -262,6 +262,16 @@ export default function IncidentDetailPage() {
             <RefreshCcw className="size-3.5" />
             {isLaunching ? "Launching..." : "Re-Triage"}
           </button>
+
+          {canInvestigateFurther(data) ? (
+            <button
+              onClick={() => setCdaOpen(true)}
+              className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-[#86BC25] bg-white px-4 py-[9px] text-[13px] font-semibold text-[#5A8217] transition-colors hover:bg-[#F1F8E5]"
+            >
+              <Sparkles className="size-3.5" />
+              Investigate Further
+            </button>
+          ) : null}
 
           <button
             onClick={markResolved}
@@ -410,6 +420,8 @@ export default function IncidentDetailPage() {
 
       {/* Activity timeline */}
       <ActivityTimeline incident={data} mutate={mutate} />
+
+      <InvestigateFurtherDrawer incident={data} open={cdaOpen} onOpenChange={setCdaOpen} />
     </div>
   );
 }
